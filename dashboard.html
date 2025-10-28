@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <style>
+        :root { --bg-color: #121212; --surface-color: rgba(30, 30, 30, 0.8); --primary-color: #3b82f6; --text-color: #ffffff; --text-secondary-color: #a0a0a0; --shadow-color: rgba(0, 0, 0, 0.5); }
+        
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            transition: background-image 0.5s ease-in-out, background-color 0.5s ease-in-out;
+        }
+
+        .dashboard-wrapper {
+            padding: 20px;
+        }
+
+        .main-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .weather-column {
+            flex: 0 0 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .weather-column h2 {
+            font-size: 1.8em;
+            margin: 0 0 5px 0;
+            text-shadow: 1px 1px 3px var(--shadow-color);
+        }
+
+        .weather-today-card {
+            background-color: var(--surface-color);
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 15px var(--shadow-color);
+        }
+        .today-main {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .today-main img {
+            width: 70px;
+            height: 70px;
+        }
+        .today-main .temp {
+            font-size: 4em;
+            font-weight: 500;
+            line-height: 1;
+        }
+        .today-details {
+            margin-top: 15px;
+            font-size: 0.95em;
+        }
+        .today-details .condition {
+            font-size: 1.2em;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+        .today-details .high-low, .today-details .precip {
+            color: var(--text-secondary-color);
+        }
+
+        .forecast-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .weather-forecast-day {
+            display: grid;
+            grid-template-columns: 100px 1fr 1fr;
+            align-items: center;
+            gap: 15px;
+            background-color: var(--surface-color);
+            border-radius: 12px;
+            padding: 10px 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.9em;
+        }
+        .weather-forecast-day .date .day {
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+        .weather-forecast-day .date .month-day {
+            color: var(--text-secondary-color);
+        }
+        .weather-forecast-day img {
+            width: 40px;
+            height: 40px;
+        }
+        .weather-forecast-day .temps, .weather-forecast-day .precip-col {
+            text-align: right;
+        }
+        .weather-forecast-day .precip-col {
+            color: var(--text-secondary-color);
+        }
+
+
+        .countdown-column {
+            flex: 1;
+            min-width: 300px;
+        }
+        .grid-container { display: grid; grid-template-columns: 1fr; gap: 15px; }
+
+        .countdown-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--surface-color);
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px var(--shadow-color);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        h2 { font-size: 1.5em; margin: 0; text-shadow: 1px 1px 3px var(--shadow-color); }
+        .timer { display: flex; align-items: baseline; gap: 10px; text-align: right; }
+        .time-value { font-size: 2.5em; font-weight: 600; line-height: 1; color: var(--primary-color); text-shadow: 1px 1px 3px var(--shadow-color); }
+        .time-label { font-size: 1.1em; color: var(--text-secondary-color); }
+
+        .settings-icon {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            z-index: 101;
+        }
+        .settings-icon svg { width: 100%; height: 100%; filter: drop-shadow(1px 1px 2px var(--shadow-color)); }
+
+        .add-container { display: flex; justify-content: center; align-items: center; background-color: var(--surface-color); border-radius: 50%; color: var(--text-secondary-color); cursor: pointer; width: 60px; height: 60px; margin: 20px auto 0; transition: all 0.2s ease-in-out; border: 1px solid rgba(255, 255, 255, 0.1); }
+        .add-container:hover { background-color: var(--primary-color); color: var(--text-color); transform: scale(1.1); }
+        .plus-sign { font-size: 3em; font-weight: 200; line-height: 1; user-select: none; }
+        
+        [x-cloak] { display: none !important; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(5px); }
+        .modal-content { background: var(--surface-color); padding: 30px; border-radius: 15px; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 20px; border: 1px solid rgba(255, 255, 255, 0.1); }
+        
+        .modal-content input[type="text"] { background: #333; border: 1px solid #444; border-radius: 8px; color: var(--text-color); font-size: 1em; padding: 12px; }
+        .date-input-wrapper { position: relative; }
+        .date-input-wrapper::before { content: "---- / -- / --"; position: absolute; left: 12px; top: 12px; color: #777; pointer-events: none; }
+        .date-input-wrapper input[type="date"]:valid::before { display: none; }
+        input[type="date"] { background: #333; border: 1px solid #444; border-radius: 8px; color: var(--text-color); font-size: 1em; padding: 11px; font-family: inherit; }
+        input[type="date"]:invalid { color: transparent; }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; transform: scale(1.4); }
+        .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
+        .btn-primary, .btn-secondary { border: none; border-radius: 8px; padding: 10px 20px; font-size: 1em; cursor: pointer; }
+        .btn-primary { background-color: var(--primary-color); color: white; }
+        .btn-secondary { background-color: #444; color: white; }
+
+        .background-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .bg-thumbnail {
+            width: 100%;
+            padding-bottom: 56.25%; /* 16:9 Aspect ratio */
+            background-size: cover;
+            background-position: center;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border-color 0.2s;
+            position: relative;
+        }
+        .bg-thumbnail.active { border-color: var(--primary-color); }
+    </style>
+</head>
+
+<body x-data="countdownApp">
+    
+    <div class="dashboard-wrapper">
+        
+        <div class="settings-icon" @click="showSettingsModal = true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white">
+                <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.44,0.17-0.48,0.41L9.22,5.59C8.63,5.83,8.1,6.14,7.61,6.52L5.22,5.56C5,5.49,4.75,5.56,4.63,5.78L2.71,9.1 c-0.12,0.2-0.07,0.47,0.12,0.61L4.86,11c-0.04,0.3-0.06,0.6-0.06,0.94c0,0.32,0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.38,2.78 c0.04,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.48-0.41l0.38-2.78c0.59-0.24,1.12-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32C21.41,15.03,21.35,14.76,21.14,14.62L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"></path>
+            </svg>
+        </div>
+
+        <div class="main-content">
+            
+            <div class="weather-column">
+                <h2>Southington, CT</h2>
+                
+                <div class="weather-today-card" x-show="todayWeather.temp_f" x-cloak>
+                    <div class="today-main">
+                        <img :src="todayWeather.condition?.icon" :alt="todayWeather.condition?.text">
+                        <div class="temp" x-text="Math.round(todayWeather.temp_f) + '°'"></div>
+                    </div>
+                    <div class="today-details">
+                        <div class="condition" x-text="todayWeather.condition?.text"></div>
+                        <div class="high-low" x-text="`High: ${Math.round(todayWeather.high)}° &nbsp; Low: ${Math.round(todayWeather.low)}°`"></div>
+                        <div class="precip" x-text="`Precipitation: ${todayWeather.precip}%`"></div>
+                    </div>
+                </div>
+
+                <div class="forecast-list">
+                    <template x-for="day in forecastDays" :key="day.date_epoch">
+                        <div class="weather-forecast-day">
+                            <div class="date">
+                                <div class="day" x-text="new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })"></div>
+                                <div class="month-day" x-text="new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })"></div>
+                            </div>
+                            <img :src="day.day.condition.icon" :alt="day.day.condition.text">
+                            <div class="temps" x-text="`${Math.round(day.day.maxtemp_f)}° / ${Math.round(day.day.mintemp_f)}°`"></div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <div class="countdown-column">
+                <div class="grid-container" id="countdownGrid">
+                    <template x-for="event in events" :key="event.id">
+                        <div class="countdown-container">
+                            <h2 x-text="event.title"></h2>
+                            <div class="timer">
+                                <span x-text="event.days" class="time-value">0</span>
+                                <span class="time-label">Days</span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+                <div class="add-container" @click="showAddModal = true">
+                    <div class="plus-sign">+</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="modal-overlay" x-show="showAddModal" x-cloak @click.self="showAddModal = false">
+        <div class="modal-content">
+            <h3>Add New Countdown</h3>
+            <input type="text" x-model="newEventTitle" placeholder="Event Title">
+            <div class="date-input-wrapper">
+                <input type="date" x-model="newEventDate" required onkeydown="return false;">
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-secondary" @click="showAddModal = false">Cancel</button>
+                <button class="btn-primary" @click="addEvent()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" x-show="showSettingsModal" x-cloak @click.self="showSettingsModal = false">
+        <div class="modal-content">
+            <h3>Choose a Background</h3>
+            <div class="background-grid">
+                <template x-for="bg in backgroundOptions" :key="bg.id">
+                    <div class="bg-thumbnail" 
+                         :style="bg.thumbnail"
+                         :class="{ 'active': JSON.stringify(selectedBackground) === JSON.stringify(bg.value) }"
+                         @click="setBackground(bg.value, bg.type)">
+                    </div>
+                </template>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-primary" @click="showSettingsModal = false">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('countdownApp', () => ({
+                events: [],
+                showAddModal: false,
+                newEventTitle: '',
+                newEventDate: '',
+                showSettingsModal: false,
+                selectedBackground: null,
+                selectedBackgroundType: '',
+
+                // --- Weather data properties ---
+                apiKey: 'YOUR_WEATHERAPI_KEY_HERE', // <-- PASTE YOUR KEY FROM WEATHERAPI.COM
+                todayWeather: {},
+                forecastDays: [],
+                
+                init() {
+                    this.loadData();
+                    this.applyBackground(this.selectedBackground, this.selectedBackgroundType); // Apply loaded background
+                    this.updateTimers();
+                    setInterval(() => this.updateTimers(), 5000);
+                    this.getWeather();
+                },
+
+                loadData() {
+                    const savedEvents = localStorage.getItem('countdownEvents');
+                    if (savedEvents) this.events = JSON.parse(savedEvents);
+                    
+                    const savedBg = localStorage.getItem('countdownBg');
+                    if (savedBg) {
+                        const bgData = JSON.parse(savedBg);
+                        this.selectedBackground = bgData.value;
+                        this.selectedBackgroundType = bgData.type;
+                    } else {
+                        // Set a default background if none is saved
+                        this.selectedBackground = 'var(--bg-color)';
+                        this.selectedBackgroundType = 'color';
+                    }
+                },
+
+                saveEvents() {
+                    localStorage.setItem('countdownEvents', JSON.stringify(this.events));
+                },
+
+                // NEW: A separate function to apply styles to the body
+                applyBackground(value, type) {
+                    // Clear all styles first
+                    document.body.style.backgroundImage = 'none';
+                    document.body.style.backgroundColor = '';
+                    document.body.style.backgroundSize = '';
+
+                    if (type === 'color') {
+                        document.body.style.backgroundColor = value;
+                    } else if (type === 'gradient') {
+                        document.body.style.backgroundImage = value;
+                    } else if (type === 'pattern') {
+                        document.body.style.backgroundImage = value.image;
+                        document.body.style.backgroundSize = value.size;
+                    } else if (type === 'image') {
+                        document.body.style.backgroundImage = `url(${value})`;
+                    } else {
+                        // Default case
+                        document.body.style.backgroundColor = 'var(--bg-color)';
+                    }
+                },
+
+                setBackground(value, type) {
+                    this.selectedBackground = value;
+                    this.selectedBackgroundType = type;
+                    this.applyBackground(value, type); // Apply the new background
+                    localStorage.setItem('countdownBg', JSON.stringify({ value, type }));
+                },
+
+                updateTimers() {
+                    this.events.forEach(event => {
+                        const targetMidnight = new Date(event.date).setUTCHours(0, 0, 0, 0);
+                        const nowMidnight = new Date().setUTCHours(0, 0, 0, 0);
+                        const distance = targetMidnight - nowMidnight;
+                        event.days = distance < 0 ? 0 : Math.ceil(distance / (1000 * 60 * 60 * 24));
+                    });
+                    this.events.sort((a, b) => new Date(a.date) - new Date(b.date));
+                },
+
+                addEvent() {
+                    if (!this.newEventTitle || !this.newEventDate) {
+                        alert('Please fill in both the title and the date.');
+                        return;
+                    }
+                    this.events.push({
+                        id: Date.now(),
+                        title: this.newEventTitle,
+                        date: this.newEventDate,
+                        days: 0
+                    });
+                    this.updateTimers();
+                    this.saveEvents();
+                    this.newEventTitle = '';
+                    this.newEventDate = '';
+                    this.showAddModal = false;
+                },
+
+                getWeather() {
+                    if (!this.apiKey || this.apiKey === 'YOUR_WEATHERAPI_KEY_HERE') {
+                        console.error('Weather API key is missing.');
+                        return;
+                    }
+
+                    const zipCode = '06489';
+                    const forecastDays = 5;
+                    const url = `https://api.weatherapi.com/v1/forecast.json?key=${this.apiKey}&q=${zipCode}&days=${forecastDays}&aqi=no&alerts=no`;
+
+                    fetch(url)
+                        .then(response => response.json())
+                        .then(data => {
+                            this.todayWeather = data.current;
+                            this.todayWeather.high = data.forecast.forecastday[0].day.maxtemp_f;
+                            this.todayWeather.low = data.forecast.forecastday[0].day.mintemp_f;
+                            this.todayWeather.precip = data.forecast.forecastday[0].day.daily_chance_of_rain;
+
+                            this.forecastDays = data.forecast.forecastday.slice(1);
+                        })
+                        .catch(error => console.error('Error fetching weather:', error));
+                },
+
+                // --- MODIFIED: backgroundOptions has a new, unified structure ---
+                backgroundOptions: [
+                    { id: 'none', type: 'color', value: 'var(--bg-color)', thumbnail: { backgroundColor: 'var(--bg-color)' } },
+                    // Solid Colors
+                    { id: 'color-darkblue', type: 'color', value: '#191970', thumbnail: { backgroundColor: '#191970' } },
+                    { id: 'color-darkgreen', type: 'color', value: '#006400', thumbnail: { backgroundColor: '#006400' } },
+                    { id: 'color-darkpurple', type: 'color', value: '#36013F', thumbnail: { backgroundColor: '#36013F' } },
+                    { id: 'color-greyblue', type: 'color', value: '#2c3e50', thumbnail: { backgroundColor: '#2c3e50' } },
+
+                    // Gradients
+                    { id: 'gradient-sky', type: 'gradient', value: 'linear-gradient(to right top, #a1c4fd, #c2e9fb)', thumbnail: { backgroundImage: 'linear-gradient(to right top, #a1c4fd, #c2e9fb)' } },
+                    { id: 'gradient-sunset', type: 'gradient', value: 'linear-gradient(to right top, #ff7e5f, #feb47b)', thumbnail: { backgroundImage: 'linear-gradient(to right top, #ff7e5f, #feb47b)' } },
+                    { id: 'gradient-forest', type: 'gradient', value: 'linear-gradient(to right top, #a8ff78, #78ffd6)', thumbnail: { backgroundImage: 'linear-gradient(to right top, #a8ff78, #78ffd6)' } },
+                    { id: 'gradient-ocean', type: 'gradient', value: 'linear-gradient(to right, #00c6ff, #0072ff)', thumbnail: { backgroundImage: 'linear-gradient(to right, #00c6ff, #0072ff)' } },
+
+                    // Patterns (value is now an object)
+                    { id: 'pattern-dots', type: 'pattern', value: { image: 'radial-gradient(#ffffff33 1px, transparent 1px)', size: '8px 8px' }, thumbnail: { backgroundImage: 'radial-gradient(#ffffff33 1px, transparent 1px)', backgroundSize: '8px 8px' } },
+                    { id: 'pattern-lines', type: 'pattern', value: { image: 'repeating-linear-gradient(45deg, #ffffff33 0, #ffffff33 1px, transparent 0, transparent 8px)', size: '8px 8px' }, thumbnail: { backgroundImage: 'repeating-linear-gradient(45deg, #ffffff33 0, #ffffff33 1px, transparent 0, transparent 8px)', backgroundSize: '8px 8px' } },
+                    
+                    // Higher-res Images
+                    { id: 'hills', type: 'image', value: 'https://images.unsplash.com/photo-1532274402911-5a369e4c4bb5?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1532274402911-5a369e4c4bb5?w=200&q=80)' } },
+                    { id: 'aurora', type: 'image', value: 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=200&q=80)' } },
+                    { id: 'mountains', type: 'image', value: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1519681393784-d120267933ba?w=200&q=80)' } },
+                    { id: 'desert', type: 'image', value: 'https://images.unsplash.com/photo-1473580044384-7ba9967e16a0?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1473580044384-7ba9967e16a0?w=200&q=80)' } },
+                    { id: 'forest', type: 'image', value: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1448375240586-882707db888b?w=200&q=80)' } },
+                    { id: 'cityscape', type: 'image', value: 'https://images.unsplash.com/photo-1480714370402-eddc0a455511?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1480714370402-eddc0a455511?w=200&q=80)' } },
+                    { id: 'beach', type: 'image', value: 'https://images.unsplash.com/photo-1507525428034-b723cf961dde?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1507525428034-b723cf961dde?w=200&q=80)' } },
+                    { id: 'nebula', type: 'image', value: 'https://images.unsplash.com/photo-1504333638930-c87873244201?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1504333638930-c87873244201?w=200&q=80)' } },
+                ],
+            }));
+        });
+    </script>
+</body>
+</html>
