@@ -352,11 +352,26 @@
                 },
 
                 updateTimers() {
+                    // --- NEW: Timezone-proof way to get "today at midnight" ---
+                    const now = new Date(); // Gets current time in local timezone
+                    const localYear = now.getFullYear();
+                    const localMonth = now.getMonth(); // 0-11
+                    const localDay = now.getDate();
+                    // Creates a UTC timestamp for the start of the local day
+                    const nowMidnight = Date.UTC(localYear, localMonth, localDay);
+
                     this.events.forEach(event => {
-                        const targetMidnight = new Date(event.date).setUTCHours(0, 0, 0, 0);
-                        const nowMidnight = new Date().setUTCHours(0, 0, 0, 0);
+                        // --- NEW: Timezone-proof way to parse the target date ---
+                        // event.date is "YYYY-MM-DD"
+                        const parts = event.date.split('-').map(Number);
+                        // Creates a UTC timestamp for the start of the target day
+                        // We use parts[1] - 1 because Date.UTC months are 0-11
+                        const targetMidnight = Date.UTC(parts[0], parts[1] - 1, parts[2]);
+
                         const distance = targetMidnight - nowMidnight;
-                        event.days = distance < 0 ? 0 : Math.ceil(distance / (1000 * 60 * 60 * 24));
+                        
+                        // Use Math.round instead of ceil for more intuitive "days left"
+                        event.days = distance < 0 ? 0 : Math.round(distance / (1000 * 60 * 60 * 24));
                     });
                     this.events.sort((a, b) => new Date(a.date) - new Date(b.date));
                 },
