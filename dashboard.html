@@ -392,11 +392,19 @@
                     fetch(url)
                         .then(response => response.json())
                         .then(data => {
+                            // Force icon URLs to be https: to prevent mixed content errors
+                            data.current.condition.icon = "https:" + data.current.condition.icon;
+                            data.forecast.forecastday.forEach(day => {
+                                day.day.condition.icon = "https:" + day.day.condition.icon;
+                            });
+                            
+                            // Set Today's weather data
                             this.todayWeather = data.current;
                             this.todayWeather.high = data.forecast.forecastday[0].day.maxtemp_f;
                             this.todayWeather.low = data.forecast.forecastday[0].day.mintemp_f;
                             this.todayWeather.precip = data.forecast.forecastday[0].day.daily_chance_of_rain;
 
+                            // Set the 4-day forecast (slicing off today)
                             this.forecastDays = data.forecast.forecastday.slice(1);
                         })
                         .catch(error => console.error('Error fetching weather:', error));
