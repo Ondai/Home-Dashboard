@@ -8,7 +8,16 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     <style>
-        :root { --bg-color: #121212; --surface-color: rgba(30, 30, 30, 0.8); --primary-color: #3b82f6; --text-color: #ffffff; --text-secondary-color: #a0a0a0; --shadow-color: rgba(0, 0, 0, 0.5); --delete-color: #e74c3c; }
+        :root { 
+            --bg-color: #121212; 
+            --surface-color: rgba(30, 30, 30, 0.8); 
+            --primary-color: #3b82f6; 
+            --text-color: #ffffff; 
+            --text-secondary-color: #a0a0a0; 
+            --shadow-color: rgba(0, 0, 0, 0.5); 
+            --delete-color: #e74c3c;
+            --success-color: #2ecc71; /* NEW: Green for "TODAY!" */
+        }
         
         body {
             background-color: var(--bg-color);
@@ -24,45 +33,21 @@
         .dashboard-wrapper { padding: 20px; }
         .main-content { display: flex; flex-wrap: wrap; gap: 30px; max-width: 1200px; margin: 0 auto; }
 
-        .weather-column {
-            flex: 0 0 320px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            text-align: center; /* Center-align the weather column */
-        }
-        
-        .date-header {
-            margin-bottom: 5px;
-            text-shadow: 1px 1px 3px var(--shadow-color);
-        }
-        .date-numeric {
-            font-size: 1.75em; /* 11 / 1 / 2025 */
-            font-weight: 500;
-            color: var(--text-color);
-        }
-        .date-weekday {
-            font-size: 1.1em; /* Sat */
-            vertical-align: super;
-            margin-left: 8px;
-            color: var(--text-secondary-color);
-        }
-        
-        .weather-column h2 {
-            font-size: 1.8em;
-            margin: 0; /* Tighten up spacing */
-            text-shadow: 1px 1px 3px var(--shadow-color);
-        }
+        .layout-landscape .main-content { flex-direction: row; flex-wrap: wrap; }
+        .layout-landscape .weather-column { flex: 0 0 320px; }
+        .layout-landscape .countdown-column { flex: 1; min-width: 300px; }
+        .layout-portrait .main-content { flex-direction: column; flex-wrap: nowrap; max-width: 600px; }
+        .layout-portrait .weather-column { flex: 1; width: 100%; }
+        .layout-portrait .countdown-column { flex: 1; width: 100%; }
 
-        .weather-today-card {
-            background-color: var(--surface-color);
-            border-radius: 12px;
-            padding: 20px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 4px 15px var(--shadow-color);
-            text-align: left; /* Reset text-align for card content */
-        }
+        .weather-column { display: flex; flex-direction: column; gap: 15px; text-align: center; }
+        
+        .date-header { margin-bottom: 5px; text-shadow: 1px 1px 3px var(--shadow-color); }
+        .date-numeric { font-size: 1.75em; font-weight: 500; color: var(--text-color); }
+        .date-weekday { font-size: 1.1em; vertical-align: super; margin-left: 8px; color: var(--text-secondary-color); }
+        .weather-column h2 { font-size: 1.8em; margin: 0; text-shadow: 1px 1px 3px var(--shadow-color); }
+
+        .weather-today-card { background-color: var(--surface-color); border-radius: 12px; padding: 20px; backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 4px 15px var(--shadow-color); text-align: left; }
         .today-main { display: flex; align-items: center; gap: 15px; }
         .today-main img { width: 70px; height: 70px; }
         .today-main .temp { font-size: 4em; font-weight: 500; line-height: 1; }
@@ -71,19 +56,7 @@
         .today-details .high-low, .today-details .precip { color: var(--text-secondary-color); }
 
         .forecast-list { display: flex; flex-direction: column; gap: 10px; }
-        .weather-forecast-day {
-            display: grid;
-            grid-template-columns: 100px 1fr 1fr;
-            align-items: center;
-            gap: 15px;
-            background-color: var(--surface-color);
-            border-radius: 12px;
-            padding: 10px 15px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            font-size: 0.9em;
-            text-align: left; /* Reset text-align */
-        }
+        .weather-forecast-day { display: grid; grid-template-columns: 100px 1fr 1fr; align-items: center; gap: 15px; background-color: var(--surface-color); border-radius: 12px; padding: 10px 15px; backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); font-size: 0.9em; text-align: left; }
         .weather-forecast-day .date .day { font-weight: 600; font-size: 1.1em; }
         .weather-forecast-day .date .month-day { color: var(--text-secondary-color); }
         .weather-forecast-day img { width: 40px; height: 40px; }
@@ -112,6 +85,13 @@
         .time-value { font-size: 2.5em; font-weight: 600; line-height: 1; color: var(--primary-color); text-shadow: 1px 1px 3px var(--shadow-color); }
         .time-label { font-size: 1.1em; color: var(--text-secondary-color); }
         .time-value.past-event { color: var(--delete-color); }
+        
+        /* NEW: Style for "TODAY!" text */
+        .time-value.today {
+            color: var(--success-color);
+            font-size: 2.2em; /* A bit smaller to fit the word */
+            font-weight: 700;
+        }
 
         .settings-icon { position: fixed; top: 20px; right: 20px; width: 40px; height: 40px; cursor: pointer; z-index: 101; }
         .settings-icon svg { width: 100%; height: 100%; filter: drop-shadow(1px 1px 2px var(--shadow-color)); }
@@ -139,15 +119,21 @@
         .btn-secondary { background-color: #444; color: white; }
         .btn-delete { background-color: var(--delete-color); color: white; }
 
+        .settings-section { width: 100%; margin-bottom: 10px; }
+        .settings-section h3 { margin: 0 0 10px 0; font-size: 1.2em; font-weight: 500; }
+        .layout-buttons-container { display: flex; gap: 10px; }
+        .layout-buttons-container button { flex: 1; background-color: #444; color: white; border: 2px solid #444; border-radius: 8px; padding: 10px 20px; font-size: 1em; cursor: pointer; transition: all 0.2s; }
+        .layout-buttons-container button.active { background-color: var(--primary-color); border-color: var(--primary-color); }
+
         .background-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         .bg-thumbnail { width: 100%; padding-bottom: 56.25%; background-size: cover; background-position: center; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: border-color 0.2s; position: relative; }
         .bg-thumbnail.active { border-color: var(--primary-color); }
     </style>
 </head>
 
-<body x-data="countdownApp">
+<body x-data="countdownApp" :class="'layout-' + layoutMode">
     
-    <div class="dashboard-wrapper">
+    <div class="dashboard-wrapper" :class="'layout-' + layoutMode">
         
         <div class="settings-icon" @click="showSettingsModal = true">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.44,0.17-0.48,0.41L9.22,5.59C8.63,5.83,8.1,6.14,7.61,6.52L5.22,5.56C5,5.49,4.75,5.56,4.63,5.78L2.71,9.1 c-0.12,0.2-0.07,0.47,0.12,0.61L4.86,11c-0.04,0.3-0.06,0.6-0.06,0.94c0,0.32,0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.38,2.78 c0.04,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.48-0.41l0.38-2.78c0.59-0.24,1.12-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32C21.41,15.03,21.35,14.76,21.14,14.62L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"></path></svg>
@@ -195,8 +181,9 @@
                         <div class="countdown-container" @click="openEditModal(event)">
                             <h2 x-text="event.title"></h2>
                             <div class="timer">
-                                <span x-text="event.days" class="time-value" :class="{ 'past-event': event.isPast }">0</span>
-                                <span class="time-label" x-text="event.isPast ? 'Days Ago' : 'Days'">Days</span>
+                                <span x-show="event.isToday" class="time-value today">TODAY!</span>
+                                <span x-show="!event.isToday" x-text="event.days" class="time-value" :class="{ 'past-event': event.isPast }">0</span>
+                                <span x-show="!event.isToday" class="time-label" x-text="event.isPast ? 'Days Ago' : 'Days'">Days</span>
                             </div>
                         </div>
                     </template>
@@ -225,18 +212,31 @@
             </div>
         </div>
     </div>
+    
     <div class="modal-overlay" x-show="showSettingsModal" x-cloak @click.self="showSettingsModal = false">
         <div class="modal-content">
-            <h3>Choose a Background</h3>
-            <div class="background-grid">
-                <template x-for="bg in backgroundOptions" :key="bg.id">
-                    <div class="bg-thumbnail" 
-                         :style="bg.thumbnail"
-                         :class="{ 'active': JSON.stringify(selectedBackground) === JSON.stringify(bg.value) }"
-                         @click="setBackground(bg.value, bg.type)">
-                    </div>
-                </template>
+            
+            <div class="settings-section">
+                <h3>Layout</h3>
+                <div class="layout-buttons-container">
+                    <button :class="{ 'active': layoutMode === 'landscape' }" @click="setLayoutMode('landscape')">Landscape</button>
+                    <button :class="{ 'active': layoutMode === 'portrait' }" @click="setLayoutMode('portrait')">Portrait</button>
+                </div>
             </div>
+
+            <div class="settings-section">
+                <h3>Background</h3>
+                <div class="background-grid">
+                    <template x-for="bg in backgroundOptions" :key="bg.id">
+                        <div class="bg-thumbnail" 
+                             :style="bg.thumbnail"
+                             :class="{ 'active': JSON.stringify(selectedBackground) === JSON.stringify(bg.value) }"
+                             @click="setBackground(bg.value, bg.type)">
+                        </div>
+                    </template>
+                </div>
+            </div>
+
             <div class="modal-buttons">
                 <button class="btn-primary" @click="showSettingsModal = false">Done</button>
             </div>
@@ -254,6 +254,7 @@
                 showSettingsModal: false,
                 selectedBackground: null,
                 selectedBackgroundType: '',
+                layoutMode: 'landscape',
 
                 apiKey: 'YOUR_WEATHERAPI_KEY_HERE', 
                 todayWeather: {},
@@ -279,6 +280,7 @@
                 loadData() {
                     const savedEvents = localStorage.getItem('countdownEvents');
                     if (savedEvents) this.events = JSON.parse(savedEvents);
+                    
                     const savedBg = localStorage.getItem('countdownBg');
                     if (savedBg) {
                         const bgData = JSON.parse(savedBg);
@@ -287,6 +289,11 @@
                     } else {
                         this.selectedBackground = 'var(--bg-color)';
                         this.selectedBackgroundType = 'color';
+                    }
+                    
+                    const savedLayout = localStorage.getItem('countdownLayout');
+                    if (savedLayout) {
+                        this.layoutMode = JSON.parse(savedLayout);
                     }
                 },
 
@@ -318,7 +325,13 @@
                     this.applyBackground(value, type);
                     localStorage.setItem('countdownBg', JSON.stringify({ value, type }));
                 },
+                
+                setLayoutMode(mode) {
+                    this.layoutMode = mode;
+                    localStorage.setItem('countdownLayout', JSON.stringify(mode));
+                },
 
+                // --- MODIFIED: Added isToday logic ---
                 updateTimers() {
                     const now = new Date();
                     const localYear = now.getFullYear();
@@ -334,9 +347,12 @@
                         if (distance < 0) {
                             event.days = Math.round(Math.abs(distance) / (1000 * 60 * 60 * 24));
                             event.isPast = true;
+                            event.isToday = false; // Not today if it's in the past
                         } else {
                             event.days = Math.round(distance / (1000 * 60 * 60 * 24));
                             event.isPast = false;
+                            // Check if it's today
+                            event.isToday = (event.days === 0);
                         }
                     });
                     this.events.sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -351,7 +367,8 @@
 
                 openEditModal(event) {
                     this.editingEvent = event;
-                    this.modalTitle = event.title;
+                    // Remove emoji from title for editing
+                    this.modalTitle = event.title.replace(/ \p{Emoji}/u, ''); 
                     this.modalDate = event.date;
                     this.showModal = true;
                 },
@@ -363,21 +380,29 @@
                     this.modalDate = '';
                 },
 
+                // --- MODIFIED: Processes title before saving ---
                 saveEvent() {
                     if (!this.modalTitle || !this.modalDate) {
                         alert('Please fill in both the title and the date.');
                         return;
                     }
+                    
+                    // Process the title to add emojis
+                    const processedTitle = this.processEventTitle(this.modalTitle);
+                    
                     if (this.editingEvent) {
-                        this.editingEvent.title = this.modalTitle;
+                        // Edit Mode
+                        this.editingEvent.title = processedTitle;
                         this.editingEvent.date = this.modalDate;
                     } else {
+                        // Add Mode
                         this.events.push({
                             id: Date.now(),
-                            title: this.modalTitle,
+                            title: processedTitle,
                             date: this.modalDate,
                             days: 0,
-                            isPast: false
+                            isPast: false,
+                            isToday: false // Default value
                         });
                     }
                     this.updateTimers();
@@ -394,6 +419,45 @@
                     this.closeModal();
                 },
                 
+                // --- NEW: Helper function to add emojis ---
+                processEventTitle(title) {
+                    let newTitle = title.trim(); // Start with a clean title
+                    const lowerCaseTitle = newTitle.toLowerCase();
+
+                    // Emoji maps
+                    const holidays = {
+                        'new year': '🎉',
+                        'valentine': '❤️',
+                        "st patrick": '☘️',
+                        "st. patrick": '☘️',
+                        'halloween': '🎃',
+                        'thanksgiving': '🦃',
+                        'christmas': '🎄'
+                    };
+                    const birthday = '🎂';
+                    const birthdayKeywords = ['birthday', 'b-day', 'bday'];
+                    
+                    let emojiAdded = false;
+
+                    // Check for Birthday
+                    if (birthdayKeywords.some(keyword => lowerCaseTitle.includes(keyword))) {
+                        newTitle += ` ${birthday}`;
+                        emojiAdded = true;
+                    }
+
+                    // Check for Holidays (only if a birthday wasn't found)
+                    if (!emojiAdded) {
+                        for (const [key, emoji] of Object.entries(holidays)) {
+                            if (lowerCaseTitle.includes(key)) {
+                                newTitle += ` ${emoji}`;
+                                break; // Stop after one holiday match
+                            }
+                        }
+                    }
+                    
+                    return newTitle;
+                },
+
                 getWeather() {
                     if (!this.apiKey || this.apiKey === 'YOUR_WEATHERAPI_KEY_HERE') {
                         console.error('Weather API key is missing.');
@@ -418,38 +482,38 @@
                         .catch(error => console.error('Error fetching weather:', error));
                 },
 
-                // --- MODIFIED: Fixed broken links and added many more images ---
+                // --- MODIFIED: Fixed broken image links ---
                 backgroundOptions: [
                     { id: 'none', type: 'color', value: 'var(--bg-color)', thumbnail: { backgroundColor: 'var(--bg-color)' } },
-                    // Solid Colors
                     { id: 'color-darkblue', type: 'color', value: '#191970', thumbnail: { backgroundColor: '#191970' } },
                     { id: 'color-darkgreen', type: 'color', value: '#006400', thumbnail: { backgroundColor: '#006400' } },
                     { id: 'color-darkpurple', type: 'color', value: '#36013F', thumbnail: { backgroundColor: '#36013F' } },
                     { id: 'color-greyblue', type: 'color', value: '#2c3e50', thumbnail: { backgroundColor: '#2c3e50' } },
-
-                    // Gradients
                     { id: 'gradient-sky', type: 'gradient', value: 'linear-gradient(to right top, #a1c4fd, #c2e9fb)', thumbnail: { backgroundImage: 'linear-gradient(to right top, #a1c4fd, #c2e9fb)' } },
                     { id: 'gradient-sunset', type: 'gradient', value: 'linear-gradient(to right top, #ff7e5f, #feb47b)', thumbnail: { backgroundImage: 'linear-gradient(to right top, #ff7e5f, #feb47b)' } },
                     { id: 'gradient-forest', type: 'gradient', value: 'linear-gradient(to right top, #a8ff78, #78ffd6)', thumbnail: { backgroundImage: 'linear-gradient(to right top, #a8ff78, #78ffd6)' } },
                     { id: 'gradient-ocean', type: 'gradient', value: 'linear-gradient(to right, #00c6ff, #0072ff)', thumbnail: { backgroundImage: 'linear-gradient(to right, #00c6ff, #0072ff)' } },
-
-                    // Patterns
                     { id: 'pattern-dots', type: 'pattern', value: { image: 'radial-gradient(#ffffff33 1px, transparent 1px)', size: '8px 8px' }, thumbnail: { backgroundImage: 'radial-gradient(#ffffff33 1px, transparent 1px)', backgroundSize: '8px 8px' } },
                     { id: 'pattern-lines', type: 'pattern', value: { image: 'repeating-linear-gradient(45deg, #ffffff33 0, #ffffff33 1px, transparent 0, transparent 8px)', size: '8px 8px' }, thumbnail: { backgroundImage: 'repeating-linear-gradient(45deg, #ffffff33 0, #ffffff33 1px, transparent 0, transparent 8px)', backgroundSize: '8px 8px' } },
-                    
-                    // --- Images (Fixed and Expanded List) ---
-                    // Nature
                     { id: 'hills', type: 'image', value: 'https://images.unsplash.com/photo-1532274402911-5a369e4c4bb5?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1532274402911-5a369e4c4bb5?w=200&q=80)' } },
                     { id: 'mountains', type: 'image', value: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1519681393784-d120267933ba?w=200&q=80)' } },
                     { id: 'desert', type: 'image', value: 'https://images.unsplash.com/photo-1473580044384-7ba9967e16a0?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1473580044384-7ba9967e16a0?w=200&q=80)' } },
                     { id: 'forest', type: 'image', value: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1448375240586-882707db888b?w=200&q=80)' } },
-
-                    // Space
+                    { id: 'beach', type: 'image', value: 'https://images.unsplash.com/photo-1507525428034-b723cf961dde?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1507525428034-b723cf961dde?w=200&q=80)' } },
+                    { id: 'lake', type: 'image', value: 'https://images.unsplash.com/photo-1476610381469-b0c62c03710d?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1476610381469-b0c62c03710d?w=200&q=80)' } },
+                    { id: 'waterfall', type: 'image', value: 'https://images.unsplash.com/photo-1433086966358-54859d09313e?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1433086966358-54859d09313e?w=200&q=80)' } },
+                    { id: 'field', type: 'image', value: 'https://images.unsplash.com/photo-1437964724103-8b05e31e0c3f?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1437964724103-8b05e31e0c3f?w=200&q=80)' } },
                     { id: 'aurora', type: 'image', value: 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=200&q=80)' } },
-
+                    { id: 'nebula', type: 'image', value: 'https://images.unsplash.com/photo-1504333638930-c87873244201?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1504333638930-c87873244201?w=200&q=80)' } },
+                    { id: 'galaxy', type: 'image', value: 'https://images.unsplash.com/photo-1502134249126-c0979a91d331?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1502134249126-c0979a91d331?w=200&q=80)' } }, // FIXED
+                    { id: 'earth', type: 'image', value: 'https://images.unsplash.com/photo-1454789548928-9ef95a60b6d5?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1454789548928-9ef95a60b6d5?w=200&q=80)' } },
+                    { id: 'cityscape', type: 'image', value: 'https://images.unsplash.com/photo-1480714370402-eddc0a455511?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1480714370402-eddc0a455511?w=200&q=80)' } }, // FIXED
+                    { id: 'city-night', type: 'image', value: 'https://images.unsplash.com/photo-1519125323398-675f030232e7?w=1920&q=80', thumbnail: { backgroundImage: 'url(httpsG://images.unsplash.com/photo-1519125323398-675f030232e7?w=200&q=80)' } },
                     { id: 'bridge', type: 'image', value: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=200&q=80)' } },
-
-                    // Abstract
+                    { id: 'abstract-1', type: 'image', value: 'https://images.unsplash.com/photo-1508672019048-8a528d61ca20?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1508672019048-8a528d61ca20?w=200&q=80)' } }, // FIXED
+                    { id: 'abstract-2', type: 'image', value: 'https://images.unsplash.com/photo-1550684376-f5a6b2a59134?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1550684376-f5a6b2a59134?w=200&q=80)' } },
+//                    { id: 'abstract-3', type: 'image', value: 'httpss://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=200&q=80)' } } // FIXED (commented out one that was broken)
+                    { id: 'abstract-3', type: 'image', value: 'https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=200&q=80)' } } // FIXED
                 ],
             }));
         });
