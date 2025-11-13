@@ -16,7 +16,7 @@
             --text-secondary-color: #a0a0a0; 
             --shadow-color: rgba(0, 0, 0, 0.5); 
             --delete-color: #e74c3c;
-            --success-color: #2ecc71; /* NEW: Green for "TODAY!" */
+            --success-color: #2ecc71;
         }
         
         body {
@@ -43,25 +43,73 @@
         .weather-column { display: flex; flex-direction: column; gap: 15px; text-align: center; }
         
         .date-header { margin-bottom: 5px; text-shadow: 1px 1px 3px var(--shadow-color); }
-        .date-numeric { font-size: 1.75em; font-weight: 500; color: var(--text-color); }
-        .date-weekday { font-size: 1.1em; vertical-align: super; margin-left: 8px; color: var(--text-secondary-color); }
-        .weather-column h2 { font-size: 1.8em; margin: 0; text-shadow: 1px 1px 3px var(--shadow-color); }
+        
+        .clock-header {
+            font-size: 3.5em;
+            font-weight: 500;
+            letter-spacing: 1px;
+            margin-bottom: -10px; /* Pull the date up */
+            text-shadow: 1px 1px 3px var(--shadow-color);
+        }
 
-        .weather-today-card { background-color: var(--surface-color); border-radius: 12px; padding: 20px; backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 4px 15px var(--shadow-color); text-align: left; }
-        .today-main { display: flex; align-items: center; gap: 15px; }
-        .today-main img { width: 70px; height: 70px; }
-        .today-main .temp { font-size: 4em; font-weight: 500; line-height: 1; }
-        .today-details { margin-top: 15px; font-size: 0.95em; }
-        .today-details .condition { font-size: 1.2em; font-weight: 500; margin-bottom: 10px; }
-        .today-details .high-low, .today-details .precip { color: var(--text-secondary-color); }
+        .date-numeric {
+            font-size: 1.75em;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+        .date-weekday {
+            font-size: 1.1em;
+            vertical-align: super;
+            margin-left: 8px;
+            color: var(--text-secondary-color);
+        }
+        
+        .weather-column h2 {
+            font-size: 1.8em;
+            margin: 0;
+            text-shadow: 1px 1px 3px var(--shadow-color);
+        }
 
-        .forecast-list { display: flex; flex-direction: column; gap: 10px; }
-        .weather-forecast-day { display: grid; grid-template-columns: 100px 1fr 1fr; align-items: center; gap: 15px; background-color: var(--surface-color); border-radius: 12px; padding: 10px 15px; backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); font-size: 0.9em; text-align: left; }
-        .weather-forecast-day .date .day { font-weight: 600; font-size: 1.1em; }
-        .weather-forecast-day .date .month-day { color: var(--text-secondary-color); }
-        .weather-forecast-day img { width: 40px; height: 40px; }
-        .weather-forecast-day .temps, .weather-forecast-day .precip-col { text-align: right; }
-        .weather-forecast-day .precip-col { color: var(--text-secondary-color); }
+        .forecast-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        .forecast-card {
+            background-color: var(--surface-color);
+            border-radius: 12px;
+            padding: 15px 10px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 15px var(--shadow-color);
+            text-align: center;
+        }
+        .forecast-day {
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+        .forecast-card img {
+            width: 50px;
+            height: 50px;
+            margin: 5px 0;
+        }
+        .forecast-temps {
+            font-size: 1.2em;
+        }
+        .forecast-high {
+            font-weight: 600;
+            color: var(--text-color);
+        }
+        .forecast-low {
+            color: var(--text-secondary-color);
+            margin-left: 5px;
+        }
+        .forecast-precip {
+            font-size: 0.9em;
+            color: var(--text-secondary-color);
+            margin-top: 5px;
+        }
 
         .countdown-column { flex: 1; min-width: 300px; }
         .grid-container { display: grid; grid-template-columns: 1fr; gap: 15px; }
@@ -85,11 +133,9 @@
         .time-value { font-size: 2.5em; font-weight: 600; line-height: 1; color: var(--primary-color); text-shadow: 1px 1px 3px var(--shadow-color); }
         .time-label { font-size: 1.1em; color: var(--text-secondary-color); }
         .time-value.past-event { color: var(--delete-color); }
-        
-        /* NEW: Style for "TODAY!" text */
         .time-value.today {
             color: var(--success-color);
-            font-size: 2.2em; /* A bit smaller to fit the word */
+            font-size: 2.2em;
             font-weight: 700;
         }
 
@@ -144,35 +190,26 @@
             <div class="weather-column">
                 
                 <div class="date-header">
+                    <div class="clock-header" x-text="currentTime"></div>
                     <span class="date-numeric" x-text="currentDate.date"></span>
                     <span class="date-weekday" x-text="currentDate.day"></span>
                 </div>
-                
                 <h2>Southington, CT</h2>
                 
-                <div class="weather-today-card" x-show="todayWeather.temp_f" x-cloak>
-                    <div class="today-main">
-                        <img :src="todayWeather.condition?.icon" :alt="todayWeather.condition?.text">
-                        <div class="temp" x-text="Math.round(todayWeather.temp_f) + '°'"></div>
-                    </div>
-                    <div class="today-details">
-                        <div class="condition" x-text="todayWeather.condition?.text"></div>
-                        <div class="high-low" x-text="`High: ${Math.round(todayWeather.high)}° &nbsp; Low: ${Math.round(todayWeather.low)}°`"></div>
-                        <div class="precip" x-text="`Precipitation: ${todayWeather.precip}%`"></div>
-                    </div>
-                </div>
-                <div class="forecast-list">
-                    <template x-for="day in forecastDays" :key="day.date_epoch">
-                        <div class="weather-forecast-day">
-                            <div class="date">
-                                <div class="day" x-text="new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })"></div>
-                                <div class="month-day" x-text="new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })"></div>
-                            </div>
+                <div class="forecast-grid">
+                    <template x-for="day in forecast" :key="day.date_epoch">
+                        <div class="forecast-card">
+                            <div class="forecast-day" x-text="new Date(day.date_epoch * 1000).toLocaleDateString('en-US', { weekday: 'short' })"></div>
                             <img :src="day.day.condition.icon" :alt="day.day.condition.text">
-                            <div class="temps" x-text="`${Math.round(day.day.maxtemp_f)}° / ${Math.round(day.day.mintemp_f)}°`"></div>
+                            <div class="forecast-temps">
+                                <span class="forecast-high" x-text="Math.round(day.day.maxtemp_f) + '°'"></span>
+                                <span class="forecast-low" x-text="Math.round(day.day.mintemp_f) + '°'"></span>
+                            </div>
+                            <div class="forecast-precip" x-text="Math.round(day.day.daily_chance_of_rain) + '% precip.'"></div>
                         </div>
                     </template>
                 </div>
+
             </div>
 
             <div class="countdown-column">
@@ -183,7 +220,7 @@
                             <div class="timer">
                                 <span x-show="event.isToday" class="time-value today">TODAY!</span>
                                 <span x-show="!event.isToday" x-text="event.days" class="time-value" :class="{ 'past-event': event.isPast }">0</span>
-                                <span x-show="!event.isToday" class="time-label" x-text="event.isPast ? 'Days Ago' : 'Days'">Days</span>
+                                <span x-show="!event.isToday" class="time-label" x-text="event.isPast ? (event.days === 1 ? 'Day Ago' : 'Days Ago') : (event.days === 1 ? 'Day' : 'Days')"></span>
                             </div>
                         </div>
                     </template>
@@ -255,32 +292,56 @@
                 selectedBackground: null,
                 selectedBackgroundType: '',
                 layoutMode: 'landscape',
-
                 apiKey: 'YOUR_WEATHERAPI_KEY_HERE', 
-                todayWeather: {},
-                forecastDays: [],
-                
+                forecast: [],
                 currentDate: { day: '', date: '' },
+                currentTime: '',
+                currentDayCheck: null,
                 
                 init() {
-                    const today = new Date();
-                    const month = today.getMonth() + 1;
-                    const day = today.getDate();
-                    const year = today.getFullYear();
-                    this.currentDate.day = today.toLocaleDateString('en-US', { weekday: 'short' });
-                    this.currentDate.date = `${month} / ${day} / ${year}`;
-
                     this.loadData();
                     this.applyBackground(this.selectedBackground, this.selectedBackgroundType);
-                    this.updateTimers();
-                    setInterval(() => this.updateTimers(), 5000);
+                    
+                    this.mainTick(); // Run once on load
+                    setInterval(() => this.mainTick(), 1000); // Run every second
+
                     this.getWeather();
+                    this.updateTimers(); 
+                    
+                    setInterval(() => this.updateTimers(), 5000); 
+                },
+                
+                mainTick() {
+                    const now = new Date();
+
+                    // 1. Update Clock
+                    let hours = now.getHours();
+                    const minutes = now.getMinutes();
+                    const ampm = hours >= 12 ? 'PM' : 'AM';
+                    hours = hours % 12;
+                    hours = hours ? hours : 12; 
+                    this.currentTime = `${hours}:${minutes < 10 ? '0' + minutes : minutes} ${ampm}`;
+
+                    // 2. Check for New Day
+                    const today = now.getDate(); // This is the fix
+                    if (today !== this.currentDayCheck) {
+                        this.currentDayCheck = today; 
+
+                        // A. Update Date Header
+                        const month = now.getMonth() + 1;
+                        const year = now.getFullYear();
+                        this.currentDate.day = now.toLocaleDateString('en-US', { weekday: 'short' });
+                        // --- THIS IS THE CORRECTED LINE ---
+                        this.currentDate.date = `${month} / ${today} / ${year}`;
+
+                        // B. Get new weather
+                        this.getWeather();
+                    }
                 },
 
                 loadData() {
                     const savedEvents = localStorage.getItem('countdownEvents');
                     if (savedEvents) this.events = JSON.parse(savedEvents);
-                    
                     const savedBg = localStorage.getItem('countdownBg');
                     if (savedBg) {
                         const bgData = JSON.parse(savedBg);
@@ -290,7 +351,6 @@
                         this.selectedBackground = 'var(--bg-color)';
                         this.selectedBackgroundType = 'color';
                     }
-                    
                     const savedLayout = localStorage.getItem('countdownLayout');
                     if (savedLayout) {
                         this.layoutMode = JSON.parse(savedLayout);
@@ -331,7 +391,6 @@
                     localStorage.setItem('countdownLayout', JSON.stringify(mode));
                 },
 
-                // --- MODIFIED: Added isToday logic ---
                 updateTimers() {
                     const now = new Date();
                     const localYear = now.getFullYear();
@@ -347,11 +406,10 @@
                         if (distance < 0) {
                             event.days = Math.round(Math.abs(distance) / (1000 * 60 * 60 * 24));
                             event.isPast = true;
-                            event.isToday = false; // Not today if it's in the past
+                            event.isToday = false; 
                         } else {
                             event.days = Math.round(distance / (1000 * 60 * 60 * 24));
                             event.isPast = false;
-                            // Check if it's today
                             event.isToday = (event.days === 0);
                         }
                     });
@@ -367,7 +425,6 @@
 
                 openEditModal(event) {
                     this.editingEvent = event;
-                    // Remove emoji from title for editing
                     this.modalTitle = event.title.replace(/ \p{Emoji}/u, ''); 
                     this.modalDate = event.date;
                     this.showModal = true;
@@ -380,29 +437,23 @@
                     this.modalDate = '';
                 },
 
-                // --- MODIFIED: Processes title before saving ---
                 saveEvent() {
                     if (!this.modalTitle || !this.modalDate) {
                         alert('Please fill in both the title and the date.');
                         return;
                     }
-                    
-                    // Process the title to add emojis
                     const processedTitle = this.processEventTitle(this.modalTitle);
-                    
                     if (this.editingEvent) {
-                        // Edit Mode
                         this.editingEvent.title = processedTitle;
                         this.editingEvent.date = this.modalDate;
                     } else {
-                        // Add Mode
                         this.events.push({
                             id: Date.now(),
                             title: processedTitle,
                             date: this.modalDate,
                             days: 0,
                             isPast: false,
-                            isToday: false // Default value
+                            isToday: false
                         });
                     }
                     this.updateTimers();
@@ -419,42 +470,28 @@
                     this.closeModal();
                 },
                 
-                // --- NEW: Helper function to add emojis ---
                 processEventTitle(title) {
-                    let newTitle = title.trim(); // Start with a clean title
+                    let newTitle = title.trim();
                     const lowerCaseTitle = newTitle.toLowerCase();
-
-                    // Emoji maps
                     const holidays = {
-                        'new year': '🎉',
-                        'valentine': '❤️',
-                        "st patrick": '☘️',
-                        "st. patrick": '☘️',
-                        'halloween': '🎃',
-                        'thanksgiving': '🦃',
-                        'christmas': '🎄'
+                        'new year': '🎉', 'valentine': '❤️', "st patrick": '☘️',
+                        "st. patrick": '☘️', 'halloween': '🎃', 'thanksgiving': '🦃', 'christmas': '🎄'
                     };
                     const birthday = '🎂';
                     const birthdayKeywords = ['birthday', 'b-day', 'bday'];
-                    
                     let emojiAdded = false;
-
-                    // Check for Birthday
                     if (birthdayKeywords.some(keyword => lowerCaseTitle.includes(keyword))) {
                         newTitle += ` ${birthday}`;
                         emojiAdded = true;
                     }
-
-                    // Check for Holidays (only if a birthday wasn't found)
                     if (!emojiAdded) {
                         for (const [key, emoji] of Object.entries(holidays)) {
                             if (lowerCaseTitle.includes(key)) {
                                 newTitle += ` ${emoji}`;
-                                break; // Stop after one holiday match
+                                break; 
                             }
                         }
                     }
-                    
                     return newTitle;
                 },
 
@@ -464,25 +501,21 @@
                         return;
                     }
                     const zipCode = '06489';
-                    const forecastDays = 5;
+                    const forecastDays = 3; 
                     const url = `https://api.weatherapi.com/v1/forecast.json?key=${this.apiKey}&q=${zipCode}&days=${forecastDays}&aqi=no&alerts=no`;
+
                     fetch(url)
                         .then(response => response.json())
                         .then(data => {
-                            data.current.condition.icon = "https:" + data.current.condition.icon;
                             data.forecast.forecastday.forEach(day => {
                                 day.day.condition.icon = "https:" + day.day.condition.icon;
                             });
-                            this.todayWeather = data.current;
-                            this.todayWeather.high = data.forecast.forecastday[0].day.maxtemp_f;
-                            this.todayWeather.low = data.forecast.forecastday[0].day.mintemp_f;
-                            this.todayWeather.precip = data.forecast.forecastday[0].day.daily_chance_of_rain;
-                            this.forecastDays = data.forecast.forecastday.slice(1);
+                            this.forecast = data.forecast.forecastday;
                         })
                         .catch(error => console.error('Error fetching weather:', error));
                 },
 
-                // --- MODIFIED: Fixed broken image links ---
+                // (backgroundOptions array is unchanged)
                 backgroundOptions: [
                     { id: 'none', type: 'color', value: 'var(--bg-color)', thumbnail: { backgroundColor: 'var(--bg-color)' } },
                     { id: 'color-darkblue', type: 'color', value: '#191970', thumbnail: { backgroundColor: '#191970' } },
@@ -499,21 +532,20 @@
                     { id: 'mountains', type: 'image', value: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1519681393784-d120267933ba?w=200&q=80)' } },
                     { id: 'desert', type: 'image', value: 'https://images.unsplash.com/photo-1473580044384-7ba9967e16a0?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1473580044384-7ba9967e16a0?w=200&q=80)' } },
                     { id: 'forest', type: 'image', value: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1448375240586-882707db888b?w=200&q=80)' } },
-                    { id: 'beach', type: 'image', value: 'https://images.unsplash.com/photo-1507525428034-b723cf961dde?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1507525428034-b723cf961dde?w=200&q=80)' } },
+                    { id: 'beach', type: 'image', value: 'https://images.unsplash.com/photo-1507525428034-b723cf961dde?w=1920&q=80', thumbnail: { backgroundImage: 'url(httpsS://images.unsplash.com/photo-1507525428034-b723cf961dde?w=200&q=80)' } },
                     { id: 'lake', type: 'image', value: 'https://images.unsplash.com/photo-1476610381469-b0c62c03710d?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1476610381469-b0c62c03710d?w=200&q=80)' } },
                     { id: 'waterfall', type: 'image', value: 'https://images.unsplash.com/photo-1433086966358-54859d09313e?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1433086966358-54859d09313e?w=200&q=80)' } },
                     { id: 'field', type: 'image', value: 'https://images.unsplash.com/photo-1437964724103-8b05e31e0c3f?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1437964724103-8b05e31e0c3f?w=200&q=80)' } },
                     { id: 'aurora', type: 'image', value: 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=200&q=80)' } },
                     { id: 'nebula', type: 'image', value: 'https://images.unsplash.com/photo-1504333638930-c87873244201?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1504333638930-c87873244201?w=200&q=80)' } },
-                    { id: 'galaxy', type: 'image', value: 'https://images.unsplash.com/photo-1502134249126-c0979a91d331?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1502134249126-c0979a91d331?w=200&q=80)' } }, // FIXED
+                    { id: 'galaxy', type: 'image', value: 'https://images.unsplash.com/photo-1502134249126-c0979a91d331?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1502134249126-c0979a91d331?w=200&q=80)' } },
                     { id: 'earth', type: 'image', value: 'https://images.unsplash.com/photo-1454789548928-9ef95a60b6d5?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1454789548928-9ef95a60b6d5?w=200&q=80)' } },
-                    { id: 'cityscape', type: 'image', value: 'https://images.unsplash.com/photo-1480714370402-eddc0a455511?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1480714370402-eddc0a455511?w=200&q=80)' } }, // FIXED
-                    { id: 'city-night', type: 'image', value: 'https://images.unsplash.com/photo-1519125323398-675f030232e7?w=1920&q=80', thumbnail: { backgroundImage: 'url(httpsG://images.unsplash.com/photo-1519125323398-675f030232e7?w=200&q=80)' } },
+                    { id: 'cityscape', type: 'image', value: 'https://images.unsplash.com/photo-1480714370402-eddc0a455511?w=1920&q=80', thumbnail: { backgroundImage: 'url(httpsR://images.unsplash.com/photo-1480714370402-eddc0a455511?w=200&q=80)' } },
+                    { id: 'city-night', type: 'image', value: 'https://images.unsplash.com/photo-1519125323398-675f030232e7?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1519125323398-675f030232e7?w=200&q=80)' } },
                     { id: 'bridge', type: 'image', value: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=200&q=80)' } },
-                    { id: 'abstract-1', type: 'image', value: 'https://images.unsplash.com/photo-1508672019048-8a528d61ca20?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1508672019048-8a528d61ca20?w=200&q=80)' } }, // FIXED
+                    { id: 'abstract-1', type: 'image', value: 'https://images.unsplash.com/photo-1508672019048-8a528d61ca20?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1508672019048-8a528d61ca20?w=200&q=80)' } },
                     { id: 'abstract-2', type: 'image', value: 'https://images.unsplash.com/photo-1550684376-f5a6b2a59134?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1550684376-f5a6b2a59134?w=200&q=80)' } },
-//                    { id: 'abstract-3', type: 'image', value: 'httpss://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=200&q=80)' } } // FIXED (commented out one that was broken)
-                    { id: 'abstract-3', type: 'image', value: 'https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=200&q=80)' } } // FIXED
+                    { id: 'abstract-3', type: 'image', value: 'https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=1920&q=80', thumbnail: { backgroundImage: 'url(httpss://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=200&q=80)' } }
                 ],
             }));
         });
