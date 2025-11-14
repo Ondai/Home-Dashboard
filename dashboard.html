@@ -45,10 +45,10 @@
         .date-header { margin-bottom: 5px; text-shadow: 1px 1px 3px var(--shadow-color); }
         
         .clock-header {
-            font-size: 3.5em;
+            font-size: 6.5em;
             font-weight: 500;
             letter-spacing: 1px;
-            margin-bottom: -10px; /* Pull the date up */
+            margin-bottom: -15px;
             text-shadow: 1px 1px 3px var(--shadow-color);
         }
 
@@ -152,7 +152,7 @@
         
         .modal-content input[type="text"] { background: #333; border: 1px solid #444; border-radius: 8px; color: var(--text-color); font-size: 1em; padding: 12px; }
         .date-input-wrapper { position: relative; }
-        .date-input-wrapper::before { content: "---- / -- / --"; position: absolute; left: 12px; top: 12px; color: #777; pointer-events: none; }
+        .date-input-wrapper::before { content: ""; position: absolute; left: 12px; top: 12px; color: #777; pointer-events: none; }
         .date-input-wrapper input[type="date"]:valid::before { display: none; }
         input[type="date"] { background: #333; border: 1px solid #444; border-radius: 8px; color: var(--text-color); font-size: 1em; padding: 11px; font-family: inherit; }
         input[type="date"]:invalid { color: transparent; }
@@ -219,8 +219,11 @@
                             <h2 x-text="event.title"></h2>
                             <div class="timer">
                                 <span x-show="event.isToday" class="time-value today">TODAY!</span>
-                                <span x-show="!event.isToday" x-text="event.days" class="time-value" :class="{ 'past-event': event.isPast }">0</span>
-                                <span x-show="!event.isToday" class="time-label" x-text="event.isPast ? (event.days === 1 ? 'Day Ago' : 'Days Ago') : (event.days === 1 ? 'Day' : 'Days')"></span>
+                                <span x-show="event.isTomorrow" class="time-value" style="font-size: 2.2em; font-weight: 700;">Tomorrow</span>
+                                <span x-show="event.isYesterday" class="time-value past-event" style="font-size: 2.2em; font-weight: 700;">Yesterday</span>
+                                
+                                <span x-show="!event.isToday && !event.isTomorrow && !event.isYesterday" x-text="event.days" class="time-value" :class="{ 'past-event': event.isPast }">0</span>
+                                <span x-show="!event.isToday && !event.isTomorrow && !event.isYesterday" class="time-label" x-text="event.isPast ? 'Days Ago' : 'Days'">Days</span>
                             </div>
                         </div>
                     </template>
@@ -402,15 +405,32 @@
                         const parts = event.date.split('-').map(Number);
                         const targetMidnight = Date.UTC(parts[0], parts[1] - 1, parts[2]);
                         const distance = targetMidnight - nowMidnight;
-                        
-                        if (distance < 0) {
-                            event.days = Math.round(Math.abs(distance) / (1000 * 60 * 60 * 24));
+                        const days = Math.round(distance / (1000 * 60 * 60 * 24)); // This can be negative
+
+                        // Reset all flags
+                        event.isPast = false;
+                        event.isToday = false;
+                        event.isTomorrow = false;
+                        event.isYesterday = false;
+                        event.days = 0;
+
+                        if (days < 0) {
+                            // Event is in the past
                             event.isPast = true;
-                            event.isToday = false; 
+                            event.days = Math.abs(days);
+                            if (event.days === 1) {
+                                event.isYesterday = true;
+                            }
+                        } else if (days === 0) {
+                            // Event is today
+                            event.isToday = true;
                         } else {
-                            event.days = Math.round(distance / (1000 * 60 * 60 * 24));
+                            // Event is in the future
                             event.isPast = false;
-                            event.isToday = (event.days === 0);
+                            event.days = days;
+                            if (event.days === 1) {
+                                event.isTomorrow = true;
+                            }
                         }
                     });
                     this.events.sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -473,17 +493,32 @@
                 processEventTitle(title) {
                     let newTitle = title.trim();
                     const lowerCaseTitle = newTitle.toLowerCase();
+                    
+                    // Define emojis
                     const holidays = {
                         'new year': '🎉', 'valentine': '❤️', "st patrick": '☘️',
-                        "st. patrick": '☘️', 'halloween': '🎃', 'thanksgiving': '🦃', 'christmas': '🎄'
+                        "st. patrick": '☘️', 'halloween': '🎃', 'thanksgiving': '🦃', 'christmas': '🎄',
+                        'easter': '🐰'
                     };
                     const birthday = '🎂';
                     const birthdayKeywords = ['birthday', 'b-day', 'bday'];
+                    const anniversary = '💖';
+                    
                     let emojiAdded = false;
+
+                    // Check for Birthday
                     if (birthdayKeywords.some(keyword => lowerCaseTitle.includes(keyword))) {
                         newTitle += ` ${birthday}`;
                         emojiAdded = true;
                     }
+
+                    // Check for Anniversary
+                    if (!emojiAdded && lowerCaseTitle.includes('anniversary')) {
+                        newTitle += ` ${anniversary}`;
+                        emojiAdded = true;
+                    }
+
+                    // Check for Holidays
                     if (!emojiAdded) {
                         for (const [key, emoji] of Object.entries(holidays)) {
                             if (lowerCaseTitle.includes(key)) {
@@ -492,6 +527,7 @@
                             }
                         }
                     }
+                    
                     return newTitle;
                 },
 
