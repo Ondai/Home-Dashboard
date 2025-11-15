@@ -45,11 +45,19 @@
         .date-header { margin-bottom: 5px; text-shadow: 1px 1px 3px var(--shadow-color); }
         
         .clock-header {
-            font-size: 6.5em;
+            font-size: 12em;
             font-weight: 500;
             letter-spacing: 1px;
             margin-bottom: -15px;
             text-shadow: 1px 1px 3px var(--shadow-color);
+        }
+
+        .clock-ampm {
+            font-size: 0.3em; /* 30% of the 9em clock size */
+            font-weight: 400;
+            vertical-align: super;
+            margin-left: 10px;
+            color: var(--text-secondary-color);
         }
 
         .date-numeric {
@@ -190,7 +198,9 @@
             <div class="weather-column">
                 
                 <div class="date-header">
-                    <div class="clock-header" x-text="currentTime"></div>
+                    <div class="clock-header">
+                        <span x-text="currentTime_HM"></span><span class="clock-ampm" x-text="currentTime_AP"></span>
+                    </div>
                     <span class="date-numeric" x-text="currentDate.date"></span>
                     <span class="date-weekday" x-text="currentDate.day"></span>
                 </div>
@@ -298,7 +308,8 @@
                 apiKey: 'YOUR_WEATHERAPI_KEY_HERE', 
                 forecast: [],
                 currentDate: { day: '', date: '' },
-                currentTime: '',
+                currentTime_HM: '',
+                currentTime_AP: '',
                 currentDayCheck: null,
                 
                 init() {
@@ -323,7 +334,8 @@
                     const ampm = hours >= 12 ? 'PM' : 'AM';
                     hours = hours % 12;
                     hours = hours ? hours : 12; 
-                    this.currentTime = `${hours}:${minutes < 10 ? '0' + minutes : minutes} ${ampm}`;
+                    this.currentTime_HM = `${hours}:${minutes < 10 ? '0' + minutes : minutes}`;
+                    this.currentTime_AP = ampm;
 
                     // 2. Check for New Day
                     const today = now.getDate(); // This is the fix
