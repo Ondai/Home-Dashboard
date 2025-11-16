@@ -16,7 +16,7 @@
             --text-secondary-color: #a0a0a0; 
             --shadow-color: rgba(0, 0, 0, 0.5); 
             --delete-color: #e74c3c;
-            --success-color: #2ecc71;
+            --success-color: #2ecc71; /* Green for "TODAY!" */
         }
         
         body {
@@ -45,15 +45,16 @@
         .date-header { margin-bottom: 5px; text-shadow: 1px 1px 3px var(--shadow-color); }
         
         .clock-header {
-            font-size: 12em;
+            font-size: 9em;
             font-weight: 500;
             letter-spacing: 1px;
             margin-bottom: -15px;
+            line-height: 1.1;
             text-shadow: 1px 1px 3px var(--shadow-color);
         }
 
         .clock-ampm {
-            font-size: 0.3em; /* 30% of the 9em clock size */
+            font-size: 0.3em; /* 30% of the 6.5em clock size */
             font-weight: 400;
             vertical-align: super;
             margin-left: 10px;
@@ -78,6 +79,7 @@
             text-shadow: 1px 1px 3px var(--shadow-color);
         }
 
+        /* 3-Day Forecast Grid */
         .forecast-grid {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
@@ -119,7 +121,7 @@
             margin-top: 5px;
         }
 
-        .countdown-column { flex: 1; min-width: 300px; }
+        .countdown-column { flex: 1; min-width: 300px; margin-top: 20px; }
         .grid-container { display: grid; grid-template-columns: 1fr; gap: 15px; }
 
         .countdown-container {
@@ -147,6 +149,35 @@
             font-weight: 700;
         }
 
+        /* Styles for Calendar Section */
+        .column-title {
+            font-size: 1.8em;
+            margin: 0;
+            text-shadow: 1px 1px 3px var(--shadow-color);
+            text-align: center;
+        }
+        .countdown-column h2 {
+            font-size: 1.5em;
+        }
+        .calendar-event h2 {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+        }
+        .calendar-time {
+            font-size: 0.9em;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        .no-events {
+            font-size: 1.1em;
+            font-style: italic;
+            color: var(--text-secondary-color);
+            width: 100%;
+            text-align: center;
+        }
+
         .settings-icon { position: fixed; top: 20px; right: 20px; width: 40px; height: 40px; cursor: pointer; z-index: 101; }
         .settings-icon svg { width: 100%; height: 100%; filter: drop-shadow(1px 1px 2px var(--shadow-color)); }
 
@@ -160,7 +191,7 @@
         
         .modal-content input[type="text"] { background: #333; border: 1px solid #444; border-radius: 8px; color: var(--text-color); font-size: 1em; padding: 12px; }
         .date-input-wrapper { position: relative; }
-        .date-input-wrapper::before { content: ""; position: absolute; left: 12px; top: 12px; color: #777; pointer-events: none; }
+        .date-input-wrapper::before { content: "---- / -- / --"; position: absolute; left: 12px; top: 12px; color: #777; pointer-events: none; }
         .date-input-wrapper input[type="date"]:valid::before { display: none; }
         input[type="date"] { background: #333; border: 1px solid #444; border-radius: 8px; color: var(--text-color); font-size: 1em; padding: 11px; font-family: inherit; }
         input[type="date"]:invalid { color: transparent; }
@@ -182,6 +213,11 @@
         .background-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         .bg-thumbnail { width: 100%; padding-bottom: 56.25%; background-size: cover; background-position: center; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: border-color 0.2s; position: relative; }
         .bg-thumbnail.active { border-color: var(--primary-color); }
+
+        .calendar-time.all-day {
+            color: var(--text-secondary-color); /* Make "All Day" text less prominent */
+            font-weight: 500;
+        }      
     </style>
 </head>
 
@@ -219,10 +255,27 @@
                         </div>
                     </template>
                 </div>
+            </div>
 
+            <div class="countdown-column" x-show="!calendarLoading" x-cloak>
+                <h3 class="column-title">Today On Google Calendar</h3>
+                <div class="grid-container" id="calendarGrid">
+                    <template x-for="(event, index) in calendarEvents" :key="index">
+                        <div class="countdown-container calendar-event">
+                            <h2>
+                                <span class="calendar-time" :class="{ 'all-day': event.time === 'All Day' }" x-text="event.time"></span>
+                                <span x-text="event.title"></span>
+                            </h2>
+                        </div>
+                    </template>
+                    <div class="countdown-container calendar-event" x-show="calendarEvents.length === 0">
+                        <h2 class="no-events">No events today.</h2>
+                    </div>
+                </div>
             </div>
 
             <div class="countdown-column">
+                <h3 class="column-title">Event Countdowns</h3>
                 <div class="grid-container" id="countdownGrid">
                     <template x-for="event in events" :key="event.id">
                         <div class="countdown-container" @click="openEditModal(event)">
@@ -305,21 +358,38 @@
                 selectedBackground: null,
                 selectedBackgroundType: '',
                 layoutMode: 'landscape',
+
+                // Calendar properties
+                calendarScriptUrl: 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec',
+                calendarEvents: [],
+                calendarLoading: true,
+
                 apiKey: 'YOUR_WEATHERAPI_KEY_HERE', 
                 forecast: [],
+                
                 currentDate: { day: '', date: '' },
                 currentTime_HM: '',
                 currentTime_AP: '',
                 currentDayCheck: null,
                 
                 init() {
+                    const today = new Date();
+                    const month = today.getMonth() + 1;
+                    const day = today.getDate();
+                    const year = today.getFullYear();
+                    this.currentDate.day = today.toLocaleDateString('en-US', { weekday: 'short' });
+                    this.currentDate.date = `${month} / ${day} / ${year}`;
+                    this.currentDayCheck = day; // Initialize the day check
+
                     this.loadData();
                     this.applyBackground(this.selectedBackground, this.selectedBackgroundType);
                     
-                    this.mainTick(); // Run once on load
-                    setInterval(() => this.mainTick(), 1000); // Run every second
+                    this.mainTick(); 
+                    setInterval(() => this.mainTick(), 1000); 
 
+                    // Run these once on load
                     this.getWeather();
+                    this.getCalendarEvents(); // Get calendar on load
                     this.updateTimers(); 
                     
                     setInterval(() => this.updateTimers(), 5000); 
@@ -328,7 +398,6 @@
                 mainTick() {
                     const now = new Date();
 
-                    // 1. Update Clock
                     let hours = now.getHours();
                     const minutes = now.getMinutes();
                     const ampm = hours >= 12 ? 'PM' : 'AM';
@@ -337,20 +406,17 @@
                     this.currentTime_HM = `${hours}:${minutes < 10 ? '0' + minutes : minutes}`;
                     this.currentTime_AP = ampm;
 
-                    // 2. Check for New Day
-                    const today = now.getDate(); // This is the fix
+                    const today = now.getDate();
                     if (today !== this.currentDayCheck) {
                         this.currentDayCheck = today; 
 
-                        // A. Update Date Header
                         const month = now.getMonth() + 1;
                         const year = now.getFullYear();
                         this.currentDate.day = now.toLocaleDateString('en-US', { weekday: 'short' });
-                        // --- THIS IS THE CORRECTED LINE ---
                         this.currentDate.date = `${month} / ${today} / ${year}`;
 
-                        // B. Get new weather
                         this.getWeather();
+                        this.getCalendarEvents(); // Get new events at midnight
                     }
                 },
 
@@ -417,9 +483,8 @@
                         const parts = event.date.split('-').map(Number);
                         const targetMidnight = Date.UTC(parts[0], parts[1] - 1, parts[2]);
                         const distance = targetMidnight - nowMidnight;
-                        const days = Math.round(distance / (1000 * 60 * 60 * 24)); // This can be negative
+                        const days = Math.round(distance / (1000 * 60 * 60 * 24));
 
-                        // Reset all flags
                         event.isPast = false;
                         event.isToday = false;
                         event.isTomorrow = false;
@@ -427,17 +492,14 @@
                         event.days = 0;
 
                         if (days < 0) {
-                            // Event is in the past
                             event.isPast = true;
                             event.days = Math.abs(days);
                             if (event.days === 1) {
                                 event.isYesterday = true;
                             }
                         } else if (days === 0) {
-                            // Event is today
                             event.isToday = true;
                         } else {
-                            // Event is in the future
                             event.isPast = false;
                             event.days = days;
                             if (event.days === 1) {
@@ -505,8 +567,6 @@
                 processEventTitle(title) {
                     let newTitle = title.trim();
                     const lowerCaseTitle = newTitle.toLowerCase();
-                    
-                    // Define emojis
                     const holidays = {
                         'new year': '🎉', 'valentine': '❤️', "st patrick": '☘️',
                         "st. patrick": '☘️', 'halloween': '🎃', 'thanksgiving': '🦃', 'christmas': '🎄',
@@ -515,22 +575,16 @@
                     const birthday = '🎂';
                     const birthdayKeywords = ['birthday', 'b-day', 'bday'];
                     const anniversary = '💖';
-                    
                     let emojiAdded = false;
 
-                    // Check for Birthday
                     if (birthdayKeywords.some(keyword => lowerCaseTitle.includes(keyword))) {
                         newTitle += ` ${birthday}`;
                         emojiAdded = true;
                     }
-
-                    // Check for Anniversary
                     if (!emojiAdded && lowerCaseTitle.includes('anniversary')) {
                         newTitle += ` ${anniversary}`;
                         emojiAdded = true;
                     }
-
-                    // Check for Holidays
                     if (!emojiAdded) {
                         for (const [key, emoji] of Object.entries(holidays)) {
                             if (lowerCaseTitle.includes(key)) {
@@ -539,7 +593,6 @@
                             }
                         }
                     }
-                    
                     return newTitle;
                 },
 
@@ -563,7 +616,46 @@
                         .catch(error => console.error('Error fetching weather:', error));
                 },
 
-                // (backgroundOptions array is unchanged)
+                // --- MODIFIED: Function now has a 10-second timeout for error handling ---
+                getCalendarEvents() {
+                    if (!this.calendarScriptUrl || this.calendarScriptUrl === 'PASTE_YOUR_APPS_SCRIPT_URL_HERE') {
+                        console.error('Google Apps Script URL is missing.');
+                        this.calendarLoading = false; // Set loading to false so "No events" shows
+                        return;
+                    }
+                    
+                    this.calendarLoading = true;
+                    
+                    // Set a timeout. If Google doesn't respond in 10s, show an error.
+                    const errorTimeout = setTimeout(() => {
+                        console.error('Google Calendar request timed out.');
+                        this.calendarLoading = false; // Give up
+                        delete window.handleCalendarData; // Clean up
+                    }, 10000);
+
+                    // 1. Define a global callback function that Alpine can access
+                    window.handleCalendarData = (data) => {
+                        clearTimeout(errorTimeout); // Success! Clear the timeout
+                        this.calendarEvents = data;
+                        this.calendarLoading = false;
+                        
+                        // Clean up: remove the script tag and the global function
+                        document.body.removeChild(document.getElementById('jsonp-script'));
+                        delete window.handleCalendarData;
+                    };
+    
+                    // 2. Create a new script tag
+                    const script = document.createElement('script');
+                    script.id = 'jsonp-script';
+                    
+                    // 3. Set the URL with our callback function name
+                    script.src = this.calendarScriptUrl + '?callback=handleCalendarData';
+    
+                    // 4. Add the script to the page to trigger the download
+                    document.body.appendChild(script);
+                },
+
+                // --- MODIFIED: Fixed broken image links ---
                 backgroundOptions: [
                     { id: 'none', type: 'color', value: 'var(--bg-color)', thumbnail: { backgroundColor: 'var(--bg-color)' } },
                     { id: 'color-darkblue', type: 'color', value: '#191970', thumbnail: { backgroundColor: '#191970' } },
@@ -580,20 +672,20 @@
                     { id: 'mountains', type: 'image', value: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1519681393784-d120267933ba?w=200&q=80)' } },
                     { id: 'desert', type: 'image', value: 'https://images.unsplash.com/photo-1473580044384-7ba9967e16a0?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1473580044384-7ba9967e16a0?w=200&q=80)' } },
                     { id: 'forest', type: 'image', value: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1448375240586-882707db888b?w=200&q=80)' } },
-                    { id: 'beach', type: 'image', value: 'https://images.unsplash.com/photo-1507525428034-b723cf961dde?w=1920&q=80', thumbnail: { backgroundImage: 'url(httpsS://images.unsplash.com/photo-1507525428034-b723cf961dde?w=200&q=80)' } },
+                    { id: 'beach', type: 'image', value: 'httpsD://images.unsplash.com/photo-1507525428034-b723cf961dde?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1507525428034-b723cf961dde?w=200&q=80)' } },
                     { id: 'lake', type: 'image', value: 'https://images.unsplash.com/photo-1476610381469-b0c62c03710d?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1476610381469-b0c62c03710d?w=200&q=80)' } },
                     { id: 'waterfall', type: 'image', value: 'https://images.unsplash.com/photo-1433086966358-54859d09313e?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1433086966358-54859d09313e?w=200&q=80)' } },
-                    { id: 'field', type: 'image', value: 'https://images.unsplash.com/photo-1437964724103-8b05e31e0c3f?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1437964724103-8b05e31e0c3f?w=200&q=80)' } },
+                    { id: 'field', type: 'image', value: 'https://images.unsplash.com/photo-1437964724103-8b05e31e0c3f?w=1920&q=80', thumbnail: { backgroundImage: 'url(httpsJ://images.unsplash.com/photo-1437964724103-8b05e31e0c3f?w=200&q=80)' } },
                     { id: 'aurora', type: 'image', value: 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=200&q=80)' } },
                     { id: 'nebula', type: 'image', value: 'https://images.unsplash.com/photo-1504333638930-c87873244201?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1504333638930-c87873244201?w=200&q=80)' } },
                     { id: 'galaxy', type: 'image', value: 'https://images.unsplash.com/photo-1502134249126-c0979a91d331?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1502134249126-c0979a91d331?w=200&q=80)' } },
                     { id: 'earth', type: 'image', value: 'https://images.unsplash.com/photo-1454789548928-9ef95a60b6d5?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1454789548928-9ef95a60b6d5?w=200&q=80)' } },
-                    { id: 'cityscape', type: 'image', value: 'https://images.unsplash.com/photo-1480714370402-eddc0a455511?w=1920&q=80', thumbnail: { backgroundImage: 'url(httpsR://images.unsplash.com/photo-1480714370402-eddc0a455511?w=200&q=80)' } },
+                    { id: 'cityscape', type: 'image', value: 'https://images.unsplash.com/photo-1480714370402-eddc0a455511?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1480714370402-eddc0a455511?w=200&q=80)' } },
                     { id: 'city-night', type: 'image', value: 'https://images.unsplash.com/photo-1519125323398-675f030232e7?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1519125323398-675f030232e7?w=200&q=80)' } },
                     { id: 'bridge', type: 'image', value: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=200&q=80)' } },
-                    { id: 'abstract-1', type: 'image', value: 'https://images.unsplash.com/photo-1508672019048-8a528d61ca20?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1508672019048-8a528d61ca20?w=200&q=80)' } },
+                    { id: 'abstract-1', type: 'image', value: 'https://images.unsplash.com/photo-1508672019048-8a528d61ca20?w=1920&q=80', thumbnail: { backgroundImage: 'url(httpsSetting://images.unsplash.com/photo-1508672019048-8a528d61ca20?w=200&q=80)' } },
                     { id: 'abstract-2', type: 'image', value: 'https://images.unsplash.com/photo-1550684376-f5a6b2a59134?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1550684376-f5a6b2a59134?w=200&q=80)' } },
-                    { id: 'abstract-3', type: 'image', value: 'https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=1920&q=80', thumbnail: { backgroundImage: 'url(httpss://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=200&q=80)' } }
+                    { id: 'abstract-3', type: 'image', value: 'https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=200&q=80)' } }
                 ],
             }));
         });
