@@ -198,6 +198,22 @@
             text-align: center;
         }
 
+        /* NEW: Wrapper for the side-by-side events */
+        .events-row {
+            display: flex;
+            gap: 30px;
+            width: 100%;
+        }
+        
+        /* NEW: Columns that split the space 50/50 */
+        .half-column {
+            flex: 1;
+            min-width: 0; /* Prevents flexbox overflow issues */
+            display: flex;
+            flex-direction: column;
+            gap: 15px; /* Space between header and grid */
+        }
+
         .settings-icon { position: fixed; top: 20px; right: 20px; width: 40px; height: 40px; cursor: pointer; z-index: 101; }
         .settings-icon svg { width: 100%; height: 100%; filter: drop-shadow(1px 1px 2px var(--shadow-color)); }
 
@@ -337,43 +353,49 @@
 
             </div>
 
-            <div class="countdown-column" x-show="!calendarLoading" x-cloak>
-                <h3 class="column-title">Today On Google Calendar</h3>
-                <div class="grid-container" id="calendarGrid">
-                    <template x-for="(event, index) in calendarEvents" :key="index">
-                        <div class="countdown-container calendar-event">
-                            <h2>
-                                <span class="calendar-time" :class="{ 'all-day': event.time === 'All Day' }" x-text="event.time"></span>
-                                <span x-text="event.title"></span>
-                            </h2>
-                        </div>
-                    </template>
-                    <div class="countdown-container calendar-event" x-show="calendarEvents.length === 0">
-                        <h2 class="no-events">No events today.</h2>
-                    </div>
-                </div>
-            </div>
-
-            <div class="countdown-column">
-                <h3 class="column-title">Event Countdowns</h3>
-                <div class="grid-container" id="countdownGrid">
-                    <template x-for="event in events" :key="event.id">
-                        <div class="countdown-container" @click="openEditModal(event)">
-                            <h2 x-text="event.title"></h2>
-                            <div class="timer">
-                                <span x-show="event.isToday" class="time-value today">TODAY!</span>
-                                <span x-show="event.isTomorrow" class="time-value" style="font-size: 2.2em; font-weight: 700;">Tomorrow</span>
-                                <span x-show="event.isYesterday" class="time-value past-event" style="font-size: 2.2em; font-weight: 700;">Yesterday</span>
-                                
-                                <span x-show="!event.isToday && !event.isTomorrow && !event.isYesterday" x-text="event.days" class="time-value" :class="{ 'past-event': event.isPast }">0</span>
-                                <span x-show="!event.isToday && !event.isTomorrow && !event.isYesterday" class="time-label" x-text="event.isPast ? 'Days Ago' : 'Days'">Days</span>
+            <div class="events-row">
+                
+                <div class="half-column">
+                    <div x-show="!calendarLoading" x-cloak>
+                        <h3 class="column-title">Google Calendar Today</h3>
+                        <div class="grid-container" id="calendarGrid">
+                            <template x-for="(event, index) in calendarEvents" :key="index">
+                                <div class="countdown-container calendar-event">
+                                    <h2>
+                                        <span class="calendar-time" :class="{ 'all-day': event.time === 'All Day' }" x-text="event.time"></span>
+                                        <span x-text="event.title"></span>
+                                    </h2>
+                                </div>
+                            </template>
+                            <div class="countdown-container calendar-event" x-show="calendarEvents.length === 0">
+                                <h2 class="no-events">No events today.</h2>
                             </div>
                         </div>
-                    </template>
+                    </div>
                 </div>
-                <div class="add-container" @click="openAddModal()">
-                    <div class="plus-sign">+</div>
+
+                <div class="half-column">
+                    <h3 class="column-title">Event Countdowns</h3>
+                    <div class="grid-container" id="countdownGrid">
+                        <template x-for="event in events" :key="event.id">
+                            <div class="countdown-container" @click="openEditModal(event)">
+                                <h2 x-text="event.title"></h2>
+                                <div class="timer">
+                                    <span x-show="event.isToday" class="time-value today">TODAY!</span>
+                                    <span x-show="event.isTomorrow" class="time-value" style="font-size: 2.2em; font-weight: 700;">Tomorrow</span>
+                                    <span x-show="event.isYesterday" class="time-value past-event" style="font-size: 2.2em; font-weight: 700;">Yesterday</span>
+                                    
+                                    <span x-show="!event.isToday && !event.isTomorrow && !event.isYesterday" x-text="event.days" class="time-value" :class="{ 'past-event': event.isPast }">0</span>
+                                    <span x-show="!event.isToday && !event.isTomorrow && !event.isYesterday" class="time-label" x-text="event.isPast ? 'Days Ago' : 'Days'">Days</span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="add-container" @click="openAddModal()">
+                        <div class="plus-sign">+</div>
+                    </div>
                 </div>
+
             </div>
 
         </div>
