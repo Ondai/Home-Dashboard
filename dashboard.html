@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
+    <title>Home Dashboard</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
@@ -31,14 +34,31 @@
         }
 
         .dashboard-wrapper { padding: 20px; }
-        .main-content { display: flex; flex-wrap: wrap; gap: 30px; max-width: 1200px; margin: 0 auto; }
+        .main-content { 
+            display: flex; 
+            flex-direction: column; /* Stack Weather on top of Countdowns */
+            gap: 30px; 
+            max-width: 1200px; 
+            margin: 0 auto; 
+        }
 
-        .layout-landscape .main-content { flex-direction: row; flex-wrap: wrap; }
-        .layout-landscape .weather-column { flex: 0 0 320px; }
-        .layout-landscape .countdown-column { flex: 1; min-width: 300px; }
-        .layout-portrait .main-content { flex-direction: column; flex-wrap: nowrap; max-width: 600px; }
-        .layout-portrait .weather-column { flex: 1; width: 100%; }
-        .layout-portrait .countdown-column { flex: 1; width: 100%; }
+        /* Make both sections full width */
+        .weather-column, .countdown-column {
+            width: 100%;
+            flex: 0 0 auto;
+        }
+
+        /* Reset specific landscape/portrait overrides since we want this stack for both */
+        .layout-landscape .main-content, 
+        .layout-portrait .main-content { 
+            flex-direction: column; 
+        }
+        .layout-landscape .weather-column, .layout-landscape .countdown-column,
+        .layout-portrait .weather-column, .layout-portrait .countdown-column {
+            flex: 1;
+            width: 100%;
+            min-width: 0;
+        }
 
         .weather-column { display: flex; flex-direction: column; gap: 15px; text-align: center; }
         
@@ -217,7 +237,59 @@
         .calendar-time.all-day {
             color: var(--text-secondary-color); /* Make "All Day" text less prominent */
             font-weight: 500;
-        }      
+        }
+
+        /* NEW: Styles for NWS Weather Cards with Graphs */
+        /* NEW: Horizontal 3-column Grid for Weather */
+        .forecast-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); /* 3 equal columns side-by-side */
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        .forecast-card {
+            background-color: var(--surface-color);
+            border-radius: 12px;
+            padding: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 15px var(--shadow-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* Spreads content out to look like a square */
+            gap: 10px;
+            min-height: 180px; /* Enforce a bit of height to make it square-ish */
+        }
+        .forecast-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 10px;
+        }
+        .forecast-day {
+            font-size: 1.4em;
+            font-weight: 600;
+        }
+        .forecast-summary {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .forecast-summary img {
+            width: 40px;
+            height: 40px;
+        }
+        .forecast-temps {
+            font-size: 1.2em;
+            font-weight: 500;
+        }
+        .chart-container {
+            position: relative;
+            height: 100px; /* Fixed height for the graph */
+            width: 100%;
+        }
     </style>
 </head>
 
@@ -243,18 +315,26 @@
                 <h2>Southington, CT</h2>
                 
                 <div class="forecast-grid">
-                    <template x-for="day in forecast" :key="day.date_epoch">
+                    <template x-for="(day, index) in forecast" :key="index">
                         <div class="forecast-card">
-                            <div class="forecast-day" x-text="new Date(day.date_epoch * 1000).toLocaleDateString('en-US', { weekday: 'short' })"></div>
-                            <img :src="day.day.condition.icon" :alt="day.day.condition.text">
-                            <div class="forecast-temps">
-                                <span class="forecast-high" x-text="Math.round(day.day.maxtemp_f) + '°'"></span>
-                                <span class="forecast-low" x-text="Math.round(day.day.mintemp_f) + '°'"></span>
+                            <div class="forecast-header">
+                                <div class="forecast-day" x-text="day.name"></div>
+                                <div class="forecast-summary">
+                                    <img :src="day.icon" :alt="day.shortForecast">
+                                    <div class="forecast-temps">
+                                        <span style="color: #ff7e5f;" x-text="day.high + '°'"></span> / 
+                                        <span style="color: #a1c4fd;" x-text="day.low + '°'"></span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="forecast-precip" x-text="Math.round(day.day.daily_chance_of_rain) + '% precip.'"></div>
+                            
+                            <div class="chart-container">
+                                <canvas :id="'chart-' + index"></canvas>
+                            </div>
                         </div>
                     </template>
                 </div>
+
             </div>
 
             <div class="countdown-column" x-show="!calendarLoading" x-cloak>
@@ -364,8 +444,8 @@
                 calendarEvents: [],
                 calendarLoading: true,
 
-                apiKey: 'YOUR_WEATHERAPI_KEY_HERE', 
                 forecast: [],
+                chartInstances: [],
                 
                 currentDate: { day: '', date: '' },
                 currentTime_HM: '',
@@ -597,23 +677,168 @@
                 },
 
                 getWeather() {
-                    if (!this.apiKey || this.apiKey === 'YOUR_WEATHERAPI_KEY_HERE') {
-                        console.error('Weather API key is missing.');
-                        return;
-                    }
-                    const zipCode = '06489';
-                    const forecastDays = 3; 
-                    const url = `https://api.weatherapi.com/v1/forecast.json?key=${this.apiKey}&q=${zipCode}&days=${forecastDays}&aqi=no&alerts=no`;
+                    // 1. Get Grid Points for Southington, CT (Lat: 40.7128, Lon: -74.0060)
+                    // We could hardcode the grid (BOX/63,83) but fetching is safer.
+                    const lat = 40.7128;
+                    const lon = -74.0060;
+                    const userAgent = { 'User-Agent': '(my-weather-dashboard, contact@example.com)' };
 
-                    fetch(url)
-                        .then(response => response.json())
+                    fetch(`https://api.weather.gov/points/${lat},${lon}`, { headers: userAgent })
+                        .then(res => res.json())
                         .then(data => {
-                            data.forecast.forecastday.forEach(day => {
-                                day.day.condition.icon = "https:" + day.day.condition.icon;
+                            const gridId = data.properties.gridId;
+                            const gridX = data.properties.gridX;
+                            const gridY = data.properties.gridY;
+
+                            // 2. Fetch Daily Forecast AND Hourly Forecast in parallel
+                            Promise.all([
+                                fetch(`https://api.weather.gov/gridpoints/${gridId}/${gridX},${gridY}/forecast`, { headers: userAgent }).then(r => r.json()),
+                                fetch(`https://api.weather.gov/gridpoints/${gridId}/${gridX},${gridY}/forecast/hourly`, { headers: userAgent }).then(r => r.json())
+                            ]).then(([dailyData, hourlyData]) => {
+                                this.processNWSData(dailyData, hourlyData);
                             });
-                            this.forecast = data.forecast.forecastday;
                         })
-                        .catch(error => console.error('Error fetching weather:', error));
+                        .catch(error => console.error('Error fetching NWS weather:', error));
+                },
+
+                processNWSData(daily, hourly) {
+                    const daysMap = {};
+                    const today = new Date();
+                    today.setHours(0,0,0,0);
+
+                    // --- 1. Process Daily Summary (Highs/Lows/Icons) ---
+                    daily.properties.periods.forEach(p => {
+                        const date = new Date(p.startTime);
+                        date.setHours(0,0,0,0);
+                        const dateKey = date.toISOString();
+
+                        if (!daysMap[dateKey]) {
+                            daysMap[dateKey] = { 
+                                date: date,
+                                name: '', 
+                                high: -999, 
+                                low: 999, 
+                                icon: p.icon, 
+                                hourlyPrecip: [] 
+                            };
+                        }
+
+                        // NWS logic: "isDaytime" true = High temp, false = Low temp
+                        if (p.isDaytime) {
+                            daysMap[dateKey].high = p.temperature;
+                            daysMap[dateKey].icon = p.icon; // Prefer day icon
+                        } else {
+                            daysMap[dateKey].low = p.temperature;
+                            // If we only have night data (e.g. looking late at night), use night icon
+                            if (daysMap[dateKey].high === -999) daysMap[dateKey].icon = p.icon; 
+                        }
+                    });
+
+                    // --- 2. Process Hourly Data (Precipitation) ---
+                    hourly.properties.periods.forEach(p => {
+                        const date = new Date(p.startTime);
+                        const hour = date.getHours();
+                        date.setHours(0,0,0,0);
+                        const dateKey = date.toISOString();
+
+                        if (daysMap[dateKey]) {
+                            daysMap[dateKey].hourlyPrecip.push({
+                                x: hour, // 0-23
+                                y: p.probabilityOfPrecipitation.value || 0
+                            });
+                        }
+                    });
+
+                    // --- 3. Filter to Today, Tomorrow, Day After ---
+                    const sortedKeys = Object.keys(daysMap).sort();
+                    // Find the key that matches "today" to ensure we start there
+                    const todayKey = today.toISOString();
+                    const startIndex = sortedKeys.indexOf(todayKey);
+                    
+                    const finalDays = [];
+                    if (startIndex > -1) {
+                        // Take 3 days starting from today
+                        for (let i = startIndex; i < startIndex + 3; i++) {
+                            if (sortedKeys[i]) {
+                                const d = daysMap[sortedKeys[i]];
+                                // Set nice names
+                                if (i === startIndex) d.name = "Today";
+                                else if (i === startIndex + 1) d.name = "Tomorrow";
+                                else d.name = d.date.toLocaleDateString('en-US', { weekday: 'long' });
+                                
+                                // Fallback if high temp is missing (e.g. it's night time already)
+                                if (d.high === -999) d.high = d.low; 
+                                
+                                finalDays.push(d);
+                            }
+                        }
+                    }
+
+                    this.forecast = finalDays;
+
+                    // --- 4. Render Charts (Wait for DOM to update) ---
+                    this.$nextTick(() => {
+                        this.renderCharts();
+                    });
+                },
+
+                renderCharts() {
+                    // Destroy old charts to prevent memory leaks
+                    this.chartInstances.forEach(chart => chart.destroy());
+                    this.chartInstances = [];
+
+                    this.forecast.forEach((day, index) => {
+                        const ctx = document.getElementById('chart-' + index);
+                        if (!ctx) return;
+
+                        // Prepare data labels (12AM, 3AM, etc or just numbers)
+                        const labels = day.hourlyPrecip.map(p => {
+                            // Simple hour formatting
+                            let h = p.x;
+                            let ampm = h >= 12 ? 'pm' : 'am';
+                            h = h % 12;
+                            h = h ? h : 12;
+                            return h + ampm;
+                        });
+                        const dataPoints = day.hourlyPrecip.map(p => p.y);
+
+                        const chart = new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: labels,
+                                datasets: [{
+                                    label: 'Rain %',
+                                    data: dataPoints,
+                                    borderColor: '#3b82f6', // Primary blue
+                                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                                    borderWidth: 2,
+                                    pointRadius: 0, // Clean line without dots
+                                    fill: true,
+                                    tension: 0.4 // Smooth curves
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } }, // Hide legend
+                                scales: {
+                                    y: {
+                                        min: 0, max: 100,
+                                        display: false, // Hide Y axis labels for cleaner look
+                                    },
+                                    x: {
+                                        grid: { display: false }, // Hide grid lines
+                                        ticks: { 
+                                            color: '#a0a0a0',
+                                            font: { size: 10 },
+                                            maxTicksLimit: 6 // Don't crowd the axis
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                        this.chartInstances.push(chart);
+                    });
                 },
 
                 // --- MODIFIED: Function now has a 10-second timeout for error handling ---
