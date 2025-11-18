@@ -3,29 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home Dashboard</title>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Dashboard</title>
     
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
     
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         :root { 
             --bg-color: #121212; 
-            --surface-color: rgba(30, 30, 30, 0.8); 
-            --primary-color: #3b82f6; 
+            --surface-color: rgba(28, 28, 30, 0.85); 
+            --primary-color: #0A84FF; 
             --text-color: #ffffff; 
-            --text-secondary-color: #a0a0a0; 
+            --text-secondary-color: #8E8E93; 
             --shadow-color: rgba(0, 0, 0, 0.5); 
-            --delete-color: #e74c3c;
-            --success-color: #2ecc71; /* Green for "TODAY!" */
+            --delete-color: #FF453A; 
+            --success-color: #32D74B; 
         }
         
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             margin: 0;
             background-size: cover;
             background-position: center;
@@ -34,197 +36,124 @@
         }
 
         .dashboard-wrapper { padding: 20px; }
-        .main-content { 
+        .main-content { display: flex; flex-direction: column; gap: 25px; max-width: 1200px; margin: 0 auto; }
+
+        /* Header Section */
+        .header-section { text-align: center; margin-bottom: 5px; }
+        .date-header {
+            text-align: center;
+            width: 100%;
+        }
+        .date-display { font-size: 2.2em; font-weight: 600; color: var(--text-color); text-shadow: 0 2px 10px rgba(0,0,0,0.3); margin-bottom: 0px; }
+        
+        /* CLOCK FIX: Updated class name to match HTML usage if needed, or ensure HTML matches this */
+        .clock-display { 
+            font-size: 7em; 
+            font-weight: 200; 
+            color: rgba(255, 255, 255, 0.95); 
+            line-height: 1; 
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3); 
+            
+            /* ADD THESE TWO LINES: */
+            text-align: center;
+            width: 100%;
+        }
+        .clock-ampm { 
+            font-size: 0.3em; 
+            font-weight: 500; 
+            margin-left: 10px; 
+            color: rgba(255, 255, 255, 0.7); 
+            vertical-align: super; 
+            position: relative; 
+            top: -10px; 
+        }
+
+        /* Weather Section */
+        .forecast-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; width: 100%; }
+        .forecast-card { background-color: var(--surface-color); border-radius: 18px; padding: 15px; backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); display: flex; flex-direction: column; align-items: center; justify-content: space-between; min-height: 160px; }
+        .forecast-day { font-size: 1em; font-weight: 600; color: var(--text-secondary-color); text-transform: uppercase; letter-spacing: 1px; }
+        .current-temp-large { font-size: 2.5em; font-weight: 200; line-height: 1; margin: 5px 0; }
+        .weather-emoji { font-size: 3em; line-height: 1; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3)); }
+        .forecast-temps { font-size: 1.2em; font-weight: 500; }
+        .high-temp { color: #ff7e5f; }
+        .low-temp { color: #a1c4fd; margin-left: 8px; }
+        .chart-container { position: relative; height: 60px; width: 100%; margin-top: auto; }
+
+        /* Events Section */
+        .events-row { display: flex; gap: 20px; width: 100%; }
+        .half-column { flex: 1; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+        /* Text Headers (for Countdowns) */
+        .section-header { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 5px; font-size: 1.3em; font-weight: 600; color: rgba(255, 255, 255, 0.9); text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        
+        /* ALIGNMENT FIX: Spacer class */
+        .header-spacer {
+            min-height: 85px; /* Matches height of Google Icon header */
             display: flex; 
-            flex-direction: column; /* Stack Weather on top of Countdowns */
-            gap: 30px; 
-            max-width: 1200px; 
-            margin: 0 auto; 
+            align-items: center; 
+            justify-content: center;
+            margin-bottom: 0;
         }
 
-        /* Make both sections full width */
-        .weather-column, .countdown-column {
-            width: 100%;
-            flex: 0 0 auto;
-        }
-
-        /* Reset specific landscape/portrait overrides since we want this stack for both */
-        .layout-landscape .main-content, 
-        .layout-portrait .main-content { 
-            flex-direction: column; 
-        }
-        .layout-landscape .weather-column, .layout-landscape .countdown-column,
-        .layout-portrait .weather-column, .layout-portrait .countdown-column {
-            flex: 1;
-            width: 100%;
-            min-width: 0;
-        }
-
-        .weather-column { display: flex; flex-direction: column; gap: 15px; text-align: center; }
+        /* --- Google Calendar Logo Header --- */
+        .gcal-header-container { display: flex; justify-content: center; margin-bottom: 15px; width: 100%; }
+        .gcal-logo-wrapper { position: relative; width: 70px; height: 70px; }
+        .gcal-logo-img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3)); }
         
-        .date-header { margin-bottom: 5px; text-shadow: 1px 1px 3px var(--shadow-color); }
-        
-        .clock-header {
-            font-size: 9em;
-            font-weight: 500;
-            letter-spacing: 1px;
-            margin-bottom: -15px;
-            line-height: 1.1;
-            text-shadow: 1px 1px 3px var(--shadow-color);
+        .gcal-date-text {
+            position: absolute;
+            top: 52%; 
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Inter', sans-serif;
+            font-weight: 700; 
+            font-size: 1.6em; 
+            color: #4285F4;   
+            line-height: 1;
+            letter-spacing: -1px;
+            z-index: 2;
         }
 
-        .clock-ampm {
-            font-size: 0.3em; /* 30% of the 6.5em clock size */
-            font-weight: 400;
-            vertical-align: super;
-            margin-left: 10px;
-            color: var(--text-secondary-color);
-        }
-
-        .date-numeric {
-            font-size: 1.75em;
-            font-weight: 500;
-            color: var(--text-color);
-        }
-        .date-weekday {
-            font-size: 1.1em;
-            vertical-align: super;
-            margin-left: 8px;
-            color: var(--text-secondary-color);
-        }
-        
-        .weather-column h2 {
-            font-size: 1.8em;
-            margin: 0;
-            text-shadow: 1px 1px 3px var(--shadow-color);
-        }
-
-        /* 3-Day Forecast Grid */
-        .forecast-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 10px;
-            margin-top: 5px;
-        }
-        .forecast-card {
+        /* Event Cards */
+        .event-card {
             background-color: var(--surface-color);
-            border-radius: 12px;
-            padding: 15px 10px;
-            backdrop-filter: blur(10px);
+            border-radius: 14px;
+            padding: 16px 20px;
+            backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 4px 15px var(--shadow-color);
-            text-align: center;
-        }
-        .forecast-day {
-            font-size: 1.1em;
-            font-weight: 600;
-        }
-        .forecast-card img {
-            width: 50px;
-            height: 50px;
-            margin: 5px 0;
-        }
-        .forecast-temps {
-            font-size: 1.2em;
-        }
-        .forecast-high {
-            font-weight: 600;
-            color: var(--text-color);
-        }
-        .forecast-low {
-            color: var(--text-secondary-color);
-            margin-left: 5px;
-        }
-        .forecast-precip {
-            font-size: 0.9em;
-            color: var(--text-secondary-color);
-            margin-top: 5px;
-        }
-
-        .countdown-column { flex: 1; min-width: 300px; margin-top: 20px; }
-        .grid-container { display: grid; grid-template-columns: 1fr; gap: 15px; }
-
-        .countdown-container {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
             display: flex;
-            justify-content: space-between;
+            justify-content: space-between; /* Title Left, Time Right */
             align-items: center;
-            background-color: var(--surface-color);
-            padding: 15px 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px var(--shadow-color);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            min-height: 60px;
             cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            transition: transform 0.2s, background-color 0.2s;
         }
-        .countdown-container:hover { transform: scale(1.02); box-shadow: 0 6px 20px var(--shadow-color); }
-        .countdown-container h2 { font-size: 1.5em; margin: 0; text-shadow: 1px 1px 3px var(--shadow-color); }
-        .timer { display: flex; align-items: baseline; gap: 10px; text-align: right; }
-        .time-value { font-size: 2.5em; font-weight: 600; line-height: 1; color: var(--primary-color); text-shadow: 1px 1px 3px var(--shadow-color); }
-        .time-label { font-size: 1.1em; color: var(--text-secondary-color); }
-        .time-value.past-event { color: var(--delete-color); }
-        .time-value.today {
-            color: var(--success-color);
-            font-size: 2.2em;
-            font-weight: 700;
-        }
-
-        /* Styles for Calendar Section */
-        .column-title {
-            font-size: 1.8em;
-            margin: 0;
-            text-shadow: 1px 1px 3px var(--shadow-color);
-            text-align: center;
-        }
-        .countdown-column h2 {
-            font-size: 1.5em;
-        }
-        .calendar-event h2 {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 5px;
-        }
-        .calendar-time {
-            font-size: 0.9em;
-            font-weight: 700;
-            color: var(--primary-color);
-        }
-        .no-events {
-            font-size: 1.1em;
-            font-style: italic;
-            color: var(--text-secondary-color);
-            width: 100%;
-            text-align: center;
-        }
-
-        /* NEW: Wrapper for the side-by-side events */
-        .events-row {
-            display: flex;
-            gap: 30px;
-            width: 100%;
-        }
+        .event-card:active { transform: scale(0.98); background-color: rgba(44, 44, 46, 0.9); }
         
-        /* NEW: Columns that split the space 50/50 */
-        .half-column {
-            flex: 1;
-            min-width: 0; /* Prevents flexbox overflow issues */
-            display: flex;
-            flex-direction: column;
-            gap: 15px; /* Space between header and grid */
+        .event-title { font-size: 1.1em; font-weight: 500; text-align: left; margin-right: 15px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .event-time { font-size: 1em; font-weight: 600; color: var(--primary-color); text-align: right; white-space: nowrap; flex-shrink: 0; margin-left: auto; }
+        .event-time.all-day { color: var(--text-secondary-color); font-weight: 500; }
+        .event-time.today-badge { color: var(--success-color); font-weight: 700; }
+        
+        /* RED TEXT FIX */
+        .event-time.past-badge,
+        .time-value.past-event, 
+        .time-label.past-event { 
+            color: var(--delete-color); 
         }
 
+        .no-events { text-align: center; color: var(--text-secondary-color); font-style: italic; padding: 10px; width: 100%; }
+        
+        .add-btn { background-color: rgba(44, 44, 46, 0.8); border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-size: 30px; color: var(--text-secondary-color); margin: 10px auto; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); }
+
+        /* Modals/Settings UI */
         .settings-icon { position: fixed; top: 20px; right: 20px; width: 40px; height: 40px; cursor: pointer; z-index: 101; }
         .settings-icon svg { width: 100%; height: 100%; filter: drop-shadow(1px 1px 2px var(--shadow-color)); }
-
-        .add-container { display: flex; justify-content: center; align-items: center; background-color: var(--surface-color); border-radius: 50%; color: var(--text-secondary-color); cursor: pointer; width: 60px; height: 60px; margin: 20px auto 0; transition: all 0.2s ease-in-out; border: 1px solid rgba(255, 255, 255, 0.1); }
-        .add-container:hover { background-color: var(--primary-color); color: var(--text-color); transform: scale(1.1); }
-        .plus-sign { font-size: 3em; font-weight: 200; line-height: 1; user-select: none; }
-        
         [x-cloak] { display: none !important; }
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(5px); }
         .modal-content { background: var(--surface-color); padding: 30px; border-radius: 15px; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 20px; border: 1px solid rgba(255, 255, 255, 0.1); }
-        
         .modal-content input[type="text"] { background: #333; border: 1px solid #444; border-radius: 8px; color: var(--text-color); font-size: 1em; padding: 12px; }
         .date-input-wrapper { position: relative; }
         .date-input-wrapper::before { content: "---- / -- / --"; position: absolute; left: 12px; top: 12px; color: #777; pointer-events: none; }
@@ -232,79 +161,51 @@
         input[type="date"] { background: #333; border: 1px solid #444; border-radius: 8px; color: var(--text-color); font-size: 1em; padding: 11px; font-family: inherit; }
         input[type="date"]:invalid { color: transparent; }
         input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; transform: scale(1.4); }
-        
         .modal-buttons { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 10px; }
         .modal-buttons .right-buttons { display: flex; gap: 10px; }
         .btn-primary, .btn-secondary, .btn-delete { border: none; border-radius: 8px; padding: 10px 20px; font-size: 1em; cursor: pointer; }
         .btn-primary { background-color: var(--primary-color); color: white; }
         .btn-secondary { background-color: #444; color: white; }
         .btn-delete { background-color: var(--delete-color); color: white; }
-
         .settings-section { width: 100%; margin-bottom: 10px; }
         .settings-section h3 { margin: 0 0 10px 0; font-size: 1.2em; font-weight: 500; }
         .layout-buttons-container { display: flex; gap: 10px; }
         .layout-buttons-container button { flex: 1; background-color: #444; color: white; border: 2px solid #444; border-radius: 8px; padding: 10px 20px; font-size: 1em; cursor: pointer; transition: all 0.2s; }
         .layout-buttons-container button.active { background-color: var(--primary-color); border-color: var(--primary-color); }
-
         .background-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         .bg-thumbnail { width: 100%; padding-bottom: 56.25%; background-size: cover; background-position: center; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: border-color 0.2s; position: relative; }
         .bg-thumbnail.active { border-color: var(--primary-color); }
-
-        .calendar-time.all-day {
-            color: var(--text-secondary-color); /* Make "All Day" text less prominent */
-            font-weight: 500;
-        }
-
-        /* NEW: Styles for NWS Weather Cards with Graphs */
-        /* NEW: Horizontal 3-column Grid for Weather */
-        .forecast-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr); /* 3 equal columns side-by-side */
-            gap: 15px;
-            margin-top: 10px;
-        }
         
-        .forecast-card {
-            background-color: var(--surface-color);
-            border-radius: 12px;
-            padding: 15px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 4px 15px var(--shadow-color);
-            display: flex;
+        /* 1. Main Layout: Always stack Weather on top of Events */
+        .layout-landscape .main-content,
+        .layout-portrait .main-content {
             flex-direction: column;
-            justify-content: space-between; /* Spreads content out to look like a square */
-            gap: 10px;
-            min-height: 180px; /* Enforce a bit of height to make it square-ish */
+            align-items: stretch; /* Ensures children fill the width */
         }
-        .forecast-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            padding-bottom: 10px;
-        }
-        .forecast-day {
-            font-size: 1.4em;
-            font-weight: 600;
-        }
-        .forecast-summary {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        .forecast-summary img {
-            width: 40px;
-            height: 40px;
-        }
-        .forecast-temps {
-            font-size: 1.2em;
-            font-weight: 500;
-        }
-        .chart-container {
-            position: relative;
-            height: 100px; /* Fixed height for the graph */
+
+        /* 2. Weather Column: Always full width */
+        .layout-landscape .weather-column,
+        .layout-portrait .weather-column {
             width: 100%;
+            flex: 0 0 auto;
+            max-width: 100%;
+        }
+
+        /* 3. Events Row: ALWAYS Side-by-side */
+        .events-row,
+        .layout-landscape .events-row,
+        .layout-portrait .events-row {
+            display: flex;
+            flex-direction: row !important; /* Force side-by-side */
+            gap: 20px;
+            width: 100%;
+        }
+
+        /* Ensure columns split space evenly */
+        .half-column {
+            flex: 1;
+            width: 50%; /* Explicit width helps some browsers align better */
+            min-width: 0;
         }
     </style>
 </head>
@@ -314,7 +215,7 @@
     <div class="dashboard-wrapper" :class="'layout-' + layoutMode">
         
         <div class="settings-icon" @click="showSettingsModal = true">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.44,0.17-0.48,0.41L9.22,5.59C8.63,5.83,8.1,6.14,7.61,6.52L5.22,5.56C5,5.49,4.75,5.56,4.63,5.78L2.71,9.1 c-0.12,0.2-0.07,0.47,0.12,0.61L4.86,11c-0.04,0.3-0.06,0.6-0.06,0.94c0,0.32,0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.38,2.78 c0.04,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.48-0.41l0.38-2.78c0.59-0.24,1.12-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32C21.41,15.03,21.35,14.76,21.14,14.62L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"></path></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.44,0.17-0.48-0.41L9.22,5.59C8.63,5.83,8.1,6.14,7.61,6.52L5.22,5.56C5,5.49,4.75,5.56,4.63,5.78L2.71,9.1 c-0.12,0.2-0.07,0.47,0.12,0.61L4.86,11c-0.04,0.3-0.06,0.6-0.06,0.94c0,0.32,0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.38,2.78 c0.04,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.48-0.41l0.38-2.78c0.59-0.24,1.12-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32C21.41,15.03,21.35,14.76,21.14,14.62L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"></path></svg>
         </div>
 
         <div class="main-content">
@@ -322,27 +223,35 @@
             <div class="weather-column">
                 
                 <div class="date-header">
-                    <div class="clock-header">
-                        <span x-text="currentTime_HM"></span><span class="clock-ampm" x-text="currentTime_AP"></span>
-                    </div>
-                    <span class="date-numeric" x-text="currentDate.date"></span>
-                    <span class="date-weekday" x-text="currentDate.day"></span>
+                     <div class="date-display" x-text="dateString"></div>
                 </div>
-                <h2>Southington, CT</h2>
+
+                <div class="clock-display">
+                    <span x-text="timeHM"></span><span class="clock-ampm" x-text="timeAP"></span>
+                </div>
                 
                 <div class="forecast-grid">
                     <template x-for="(day, index) in forecast" :key="index">
                         <div class="forecast-card">
-                            <div class="forecast-header">
-                                <div class="forecast-day" x-text="day.name"></div>
-                                <div class="forecast-summary">
-                                    <img :src="day.icon" :alt="day.shortForecast">
+                            <div class="forecast-day" x-text="day.name"></div>
+                            
+                            <template x-if="index === 0 && day.currentTemp !== undefined">
+                                <div class="today-weather-row">
+                                        <div class="weather-emoji" x-text="day.emoji"></div>
+                                        <div class="current-temp-large" x-text="Math.round(day.currentTemp) + '°'"></div>
+                                </div>
+                            </template>
+
+                            <template x-if="index !== 0">
+                                <div style="display:contents; text-align:center;">
+                                    <div class="weather-emoji" x-text="day.emoji"></div>
+                                    
                                     <div class="forecast-temps">
-                                        <span style="color: #ff7e5f;" x-text="day.high + '°'"></span> / 
-                                        <span style="color: #a1c4fd;" x-text="day.low + '°'"></span>
+                                        <span class="high-temp" style="color: #ff7e5f;" x-text="Math.round(day.high) + '°'"></span> / 
+                                        <span class="low-temp" style="color: #a1c4fd;" x-text="Math.round(day.low) + '°'"></span>
                                     </div>
                                 </div>
-                            </div>
+                            </template>
                             
                             <div class="chart-container">
                                 <canvas :id="'chart-' + index"></canvas>
@@ -356,42 +265,76 @@
             <div class="events-row">
                 
                 <div class="half-column">
-                    <div x-show="!calendarLoading" x-cloak>
-                        <h3 class="column-title">Google Calendar Today</h3>
-                        <div class="grid-container" id="calendarGrid">
-                            <template x-for="(event, index) in calendarEvents" :key="index">
-                                <div class="countdown-container calendar-event">
-                                    <h2>
-                                        <span class="calendar-time" :class="{ 'all-day': event.time === 'All Day' }" x-text="event.time"></span>
-                                        <span x-text="event.title"></span>
-                                    </h2>
-                                </div>
-                            </template>
-                            <div class="countdown-container calendar-event" x-show="calendarEvents.length === 0">
-                                <h2 class="no-events">No events today.</h2>
-                            </div>
+                    
+                    <div class="gcal-header-container" x-show="!calLoading">
+                        <div class="gcal-logo-wrapper">
+                            <img src="assets/gcal.png" class="gcal-logo-img">
+                            <span class="gcal-date-text" x-text="calendar.dates?.today"></span>
                         </div>
                     </div>
+                    
+                    <div x-show="!calLoading">
+                        <template x-for="(event, i) in calendar.today" :key="'t'+i">
+                            <div class="event-card">
+                                <span class="event-title" x-text="event.title"></span>
+                                <span class="event-time" :class="{'all-day': event.time === 'All Day'}" x-text="event.time"></span>
+                            </div>
+                        </template>
+                        
+                        <div class="event-card" x-show="calendar.today && calendar.today.length === 0">
+                            <span class="no-events" style="width:100%; text-align:center;">No events today</span>
+                        </div>
+                    </div>
+
+                    <div class="gcal-header-container" style="margin-top: 25px;" x-show="!calLoading">
+                         <div class="gcal-logo-wrapper">
+                            <img src="assets/gcal.png" class="gcal-logo-img">
+                            <span class="gcal-date-text" x-text="calendar.dates?.tomorrow"></span>
+                        </div>
+                    </div>
+                    
+                    <div x-show="!calLoading">
+                        <template x-for="(event, i) in calendar.tomorrow" :key="'tm'+i">
+                            <div class="event-card">
+                                <span class="event-title" x-text="event.title"></span>
+                                <span class="event-time" :class="{'all-day': event.time === 'All Day'}" x-text="event.time"></span>
+                            </div>
+                        </template>
+
+                        <div class="event-card" x-show="calendar.tomorrow && calendar.tomorrow.length === 0">
+                            <span class="no-events" style="width:100%; text-align:center;">No events tomorrow</span>
+                        </div>
+                    </div>
+
                 </div>
 
                 <div class="half-column">
-                    <h3 class="column-title">Event Countdowns</h3>
+                    
+                    <div class="section-header header-spacer">Event Countdowns</div>
+                    
                     <div class="grid-container" id="countdownGrid">
                         <template x-for="event in events" :key="event.id">
-                            <div class="countdown-container" @click="openEditModal(event)">
-                                <h2 x-text="event.title"></h2>
-                                <div class="timer">
-                                    <span x-show="event.isToday" class="time-value today">TODAY!</span>
-                                    <span x-show="event.isTomorrow" class="time-value" style="font-size: 2.2em; font-weight: 700;">Tomorrow</span>
-                                    <span x-show="event.isYesterday" class="time-value past-event" style="font-size: 2.2em; font-weight: 700;">Yesterday</span>
+                            <div class="countdown-container event-card" @click="openEditModal(event)">
+                                <span class="event-title" x-text="event.title"></span>
+                                <div class="event-time">
+                                    <span x-show="event.isToday" class="today-badge">TODAY!</span>
+                                    <span x-show="event.isTomorrow" class="time-value" style="font-size: 1.2em; font-weight: 700;">Tomorrow</span>
+                                    <span x-show="event.isYesterday" class="time-value past-event" style="font-size: 1.2em; font-weight: 700;">Yesterday</span>
                                     
-                                    <span x-show="!event.isToday && !event.isTomorrow && !event.isYesterday" x-text="event.days" class="time-value" :class="{ 'past-event': event.isPast }">0</span>
-                                    <span x-show="!event.isToday && !event.isTomorrow && !event.isYesterday" class="time-label" x-text="event.isPast ? 'Days Ago' : 'Days'">Days</span>
+                                    <span x-show="!event.isToday && !event.isTomorrow && !event.isYesterday" 
+                                          x-text="event.days" 
+                                          class="time-value" 
+                                          :class="{ 'past-event': event.isPast }">0</span>
+                                    
+                                    <span x-show="!event.isToday && !event.isTomorrow && !event.isYesterday" 
+                                          class="time-label" 
+                                          :class="{ 'past-event': event.isPast }"
+                                          x-text="event.isPast ? ' Days Ago' : ' Days'"></span>
                                 </div>
                             </div>
                         </template>
                     </div>
-                    <div class="add-container" @click="openAddModal()">
+                    <div class="add-btn" @click="openAddModal()">
                         <div class="plus-sign">+</div>
                     </div>
                 </div>
@@ -420,7 +363,6 @@
     
     <div class="modal-overlay" x-show="showSettingsModal" x-cloak @click.self="showSettingsModal = false">
         <div class="modal-content">
-            
             <div class="settings-section">
                 <h3>Layout</h3>
                 <div class="layout-buttons-container">
@@ -428,7 +370,6 @@
                     <button :class="{ 'active': layoutMode === 'portrait' }" @click="setLayoutMode('portrait')">Portrait</button>
                 </div>
             </div>
-
             <div class="settings-section">
                 <h3>Background</h3>
                 <div class="background-grid">
@@ -441,7 +382,6 @@
                     </template>
                 </div>
             </div>
-
             <div class="modal-buttons">
                 <button class="btn-primary" @click="showSettingsModal = false">Done</button>
             </div>
@@ -456,6 +396,7 @@
                 editingEvent: null,
                 modalTitle: '',
                 modalDate: '',
+                dateString: '',
                 showSettingsModal: false,
                 selectedBackground: null,
                 selectedBackgroundType: '',
@@ -463,15 +404,15 @@
 
                 // Calendar properties
                 calendarScriptUrl: 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec',
-                calendarEvents: [],
-                calendarLoading: true,
+                calendar: { today: [], tomorrow: [], dates: {} },
+                calLoading: true,
 
                 forecast: [],
                 chartInstances: [],
                 
                 currentDate: { day: '', date: '' },
-                currentTime_HM: '',
-                currentTime_AP: '',
+                timeHM: '',
+                timeAP: '',
                 currentDayCheck: null,
                 
                 init() {
@@ -481,7 +422,12 @@
                     const year = today.getFullYear();
                     this.currentDate.day = today.toLocaleDateString('en-US', { weekday: 'short' });
                     this.currentDate.date = `${month} / ${day} / ${year}`;
-                    this.currentDayCheck = day; // Initialize the day check
+                    this.currentDayCheck = day; 
+                    this.dateString = today.toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    });
 
                     this.loadData();
                     this.applyBackground(this.selectedBackground, this.selectedBackgroundType);
@@ -489,9 +435,8 @@
                     this.mainTick(); 
                     setInterval(() => this.mainTick(), 1000); 
 
-                    // Run these once on load
                     this.getWeather();
-                    this.getCalendarEvents(); // Get calendar on load
+                    this.getCalendarEvents(); 
                     this.updateTimers(); 
                     
                     setInterval(() => this.updateTimers(), 5000); 
@@ -505,20 +450,21 @@
                     const ampm = hours >= 12 ? 'PM' : 'AM';
                     hours = hours % 12;
                     hours = hours ? hours : 12; 
-                    this.currentTime_HM = `${hours}:${minutes < 10 ? '0' + minutes : minutes}`;
-                    this.currentTime_AP = ampm;
+                    this.timeHM = `${hours}:${minutes < 10 ? '0' + minutes : minutes}`;
+                    this.timeAP = ampm;
 
                     const today = now.getDate();
                     if (today !== this.currentDayCheck) {
                         this.currentDayCheck = today; 
 
-                        const month = now.getMonth() + 1;
-                        const year = now.getFullYear();
-                        this.currentDate.day = now.toLocaleDateString('en-US', { weekday: 'short' });
-                        this.currentDate.date = `${month} / ${today} / ${year}`;
+                        this.dateString = now.toLocaleDateString('en-US', { 
+                            weekday: 'long', 
+                            month: 'long', 
+                            day: 'numeric' 
+                        });
 
                         this.getWeather();
-                        this.getCalendarEvents(); // Get new events at midnight
+                        this.getCalendarEvents(); 
                     }
                 },
 
@@ -699,8 +645,6 @@
                 },
 
                 getWeather() {
-                    // 1. Get Grid Points for Southington, CT (Lat: 40.7128, Lon: -74.0060)
-                    // We could hardcode the grid (BOX/63,83) but fetching is safer.
                     const lat = 40.7128;
                     const lon = -74.0060;
                     const userAgent = { 'User-Agent': '(my-weather-dashboard, contact@example.com)' };
@@ -712,7 +656,6 @@
                             const gridX = data.properties.gridX;
                             const gridY = data.properties.gridY;
 
-                            // 2. Fetch Daily Forecast AND Hourly Forecast in parallel
                             Promise.all([
                                 fetch(`https://api.weather.gov/gridpoints/${gridId}/${gridX},${gridY}/forecast`, { headers: userAgent }).then(r => r.json()),
                                 fetch(`https://api.weather.gov/gridpoints/${gridId}/${gridX},${gridY}/forecast/hourly`, { headers: userAgent }).then(r => r.json())
@@ -728,7 +671,6 @@
                     const today = new Date();
                     today.setHours(0,0,0,0);
 
-                    // --- 1. Process Daily Summary (Highs/Lows/Icons) ---
                     daily.properties.periods.forEach(p => {
                         const date = new Date(p.startTime);
                         date.setHours(0,0,0,0);
@@ -745,18 +687,17 @@
                             };
                         }
 
-                        // NWS logic: "isDaytime" true = High temp, false = Low temp
                         if (p.isDaytime) {
                             daysMap[dateKey].high = p.temperature;
-                            daysMap[dateKey].icon = p.icon; // Prefer day icon
+                            daysMap[dateKey].icon = p.icon; 
                         } else {
                             daysMap[dateKey].low = p.temperature;
-                            // If we only have night data (e.g. looking late at night), use night icon
                             if (daysMap[dateKey].high === -999) daysMap[dateKey].icon = p.icon; 
                         }
                     });
 
-                    // --- 2. Process Hourly Data (Precipitation) ---
+                    const currentTemp = hourly.properties.periods[0].temperature;
+
                     hourly.properties.periods.forEach(p => {
                         const date = new Date(p.startTime);
                         const hour = date.getHours();
@@ -765,31 +706,34 @@
 
                         if (daysMap[dateKey]) {
                             daysMap[dateKey].hourlyPrecip.push({
-                                x: hour, // 0-23
+                                x: hour,
                                 y: p.probabilityOfPrecipitation.value || 0
                             });
                         }
                     });
 
-                    // --- 3. Filter to Today, Tomorrow, Day After ---
                     const sortedKeys = Object.keys(daysMap).sort();
-                    // Find the key that matches "today" to ensure we start there
                     const todayKey = today.toISOString();
                     const startIndex = sortedKeys.indexOf(todayKey);
                     
                     const finalDays = [];
                     if (startIndex > -1) {
-                        // Take 3 days starting from today
                         for (let i = startIndex; i < startIndex + 3; i++) {
                             if (sortedKeys[i]) {
                                 const d = daysMap[sortedKeys[i]];
-                                // Set nice names
                                 if (i === startIndex) d.name = "Today";
                                 else if (i === startIndex + 1) d.name = "Tomorrow";
                                 else d.name = d.date.toLocaleDateString('en-US', { weekday: 'long' });
                                 
-                                // Fallback if high temp is missing (e.g. it's night time already)
                                 if (d.high === -999) d.high = d.low; 
+
+                                d.currentTemp = (i === 0) ? currentTemp : undefined; 
+
+                                d.emoji = this.getWeatherEmoji(daily.properties.periods.find(p => {
+                                    const pDate = new Date(p.startTime);
+                                    pDate.setHours(0,0,0,0);
+                                    return pDate.getTime() === d.date.getTime();
+                                })?.shortForecast);
                                 
                                 finalDays.push(d);
                             }
@@ -798,14 +742,26 @@
 
                     this.forecast = finalDays;
 
-                    // --- 4. Render Charts (Wait for DOM to update) ---
                     this.$nextTick(() => {
                         this.renderCharts();
                     });
                 },
 
+                getWeatherEmoji(text) {
+                    if (!text) return '❓';
+                    const t = text.toLowerCase();
+                    if (t.includes('snow') || t.includes('blizzard') || t.includes('flurries')) return '❄️';
+                    if (t.includes('rain') || t.includes('drizzle') || t.includes('shower')) return '🌧️';
+                    if (t.includes('thunder') || t.includes('t-storm')) return '⛈️';
+                    if (t.includes('fog') || t.includes('mist') || t.includes('haze')) return '🌫️';
+                    if (t.includes('cloud') || t.includes('overcast')) return '☁️';
+                    if (t.includes('partly') && t.includes('sunny')) return '⛅';
+                    if (t.includes('sunny') || t.includes('clear') || t.includes('fair')) return '☀️';
+                    if (t.includes('wind')) return '💨';
+                    return '🌤️'; 
+                },
+
                 renderCharts() {
-                    // Destroy old charts to prevent memory leaks
                     this.chartInstances.forEach(chart => chart.destroy());
                     this.chartInstances = [];
 
@@ -813,9 +769,7 @@
                         const ctx = document.getElementById('chart-' + index);
                         if (!ctx) return;
 
-                        // Prepare data labels (12AM, 3AM, etc or just numbers)
                         const labels = day.hourlyPrecip.map(p => {
-                            // Simple hour formatting
                             let h = p.x;
                             let ampm = h >= 12 ? 'pm' : 'am';
                             h = h % 12;
@@ -831,29 +785,29 @@
                                 datasets: [{
                                     label: 'Rain %',
                                     data: dataPoints,
-                                    borderColor: '#3b82f6', // Primary blue
+                                    borderColor: '#3b82f6',
                                     backgroundColor: 'rgba(59, 130, 246, 0.2)',
                                     borderWidth: 2,
-                                    pointRadius: 0, // Clean line without dots
+                                    pointRadius: 0,
                                     fill: true,
-                                    tension: 0.4 // Smooth curves
+                                    tension: 0.4
                                 }]
                             },
                             options: {
                                 responsive: true,
                                 maintainAspectRatio: false,
-                                plugins: { legend: { display: false } }, // Hide legend
+                                plugins: { legend: { display: false } },
                                 scales: {
                                     y: {
                                         min: 0, max: 100,
-                                        display: false, // Hide Y axis labels for cleaner look
+                                        display: false,
                                     },
                                     x: {
-                                        grid: { display: false }, // Hide grid lines
+                                        grid: { display: false },
                                         ticks: { 
                                             color: '#a0a0a0',
                                             font: { size: 10 },
-                                            maxTicksLimit: 6 // Don't crowd the axis
+                                            maxTicksLimit: 6
                                         }
                                     }
                                 }
@@ -863,46 +817,36 @@
                     });
                 },
 
-                // --- MODIFIED: Function now has a 10-second timeout for error handling ---
                 getCalendarEvents() {
-                    if (!this.calendarScriptUrl || this.calendarScriptUrl === 'PASTE_YOUR_APPS_SCRIPT_URL_HERE') {
+                    if (!this.calendarScriptUrl || this.calendarScriptUrl.includes('PASTE')) {
                         console.error('Google Apps Script URL is missing.');
-                        this.calendarLoading = false; // Set loading to false so "No events" shows
+                        this.calLoading = false;
                         return;
                     }
                     
-                    this.calendarLoading = true;
+                    this.calLoading = true;
                     
-                    // Set a timeout. If Google doesn't respond in 10s, show an error.
                     const errorTimeout = setTimeout(() => {
                         console.error('Google Calendar request timed out.');
-                        this.calendarLoading = false; // Give up
-                        delete window.handleCalendarData; // Clean up
+                        this.calLoading = false;
+                        if(window.handleCalendarData) delete window.handleCalendarData;
                     }, 10000);
 
-                    // 1. Define a global callback function that Alpine can access
                     window.handleCalendarData = (data) => {
-                        clearTimeout(errorTimeout); // Success! Clear the timeout
-                        this.calendarEvents = data;
-                        this.calendarLoading = false;
+                        clearTimeout(errorTimeout);
+                        this.calendar = data; 
+                        this.calLoading = false;
                         
-                        // Clean up: remove the script tag and the global function
                         document.body.removeChild(document.getElementById('jsonp-script'));
                         delete window.handleCalendarData;
                     };
     
-                    // 2. Create a new script tag
                     const script = document.createElement('script');
                     script.id = 'jsonp-script';
-                    
-                    // 3. Set the URL with our callback function name
                     script.src = this.calendarScriptUrl + '?callback=handleCalendarData';
-    
-                    // 4. Add the script to the page to trigger the download
                     document.body.appendChild(script);
                 },
 
-                // --- MODIFIED: Fixed broken image links ---
                 backgroundOptions: [
                     { id: 'none', type: 'color', value: 'var(--bg-color)', thumbnail: { backgroundColor: 'var(--bg-color)' } },
                     { id: 'color-darkblue', type: 'color', value: '#191970', thumbnail: { backgroundColor: '#191970' } },
@@ -919,10 +863,10 @@
                     { id: 'mountains', type: 'image', value: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1519681393784-d120267933ba?w=200&q=80)' } },
                     { id: 'desert', type: 'image', value: 'https://images.unsplash.com/photo-1473580044384-7ba9967e16a0?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1473580044384-7ba9967e16a0?w=200&q=80)' } },
                     { id: 'forest', type: 'image', value: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1448375240586-882707db888b?w=200&q=80)' } },
-                    { id: 'beach', type: 'image', value: 'httpsD://images.unsplash.com/photo-1507525428034-b723cf961dde?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1507525428034-b723cf961dde?w=200&q=80)' } },
+                    { id: 'beach', type: 'image', value: 'https://images.unsplash.com/photo-1507525428034-b723cf961dde?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1507525428034-b723cf961dde?w=200&q=80)' } },
                     { id: 'lake', type: 'image', value: 'https://images.unsplash.com/photo-1476610381469-b0c62c03710d?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1476610381469-b0c62c03710d?w=200&q=80)' } },
                     { id: 'waterfall', type: 'image', value: 'https://images.unsplash.com/photo-1433086966358-54859d09313e?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1433086966358-54859d09313e?w=200&q=80)' } },
-                    { id: 'field', type: 'image', value: 'https://images.unsplash.com/photo-1437964724103-8b05e31e0c3f?w=1920&q=80', thumbnail: { backgroundImage: 'url(httpsJ://images.unsplash.com/photo-1437964724103-8b05e31e0c3f?w=200&q=80)' } },
+                    { id: 'field', type: 'image', value: 'https://images.unsplash.com/photo-1437964724103-8b05e31e0c3f?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1437964724103-8b05e31e0c3f?w=200&q=80)' } },
                     { id: 'aurora', type: 'image', value: 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=200&q=80)' } },
                     { id: 'nebula', type: 'image', value: 'https://images.unsplash.com/photo-1504333638930-c87873244201?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1504333638930-c87873244201?w=200&q=80)' } },
                     { id: 'galaxy', type: 'image', value: 'https://images.unsplash.com/photo-1502134249126-c0979a91d331?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1502134249126-c0979a91d331?w=200&q=80)' } },
@@ -930,7 +874,7 @@
                     { id: 'cityscape', type: 'image', value: 'https://images.unsplash.com/photo-1480714370402-eddc0a455511?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1480714370402-eddc0a455511?w=200&q=80)' } },
                     { id: 'city-night', type: 'image', value: 'https://images.unsplash.com/photo-1519125323398-675f030232e7?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1519125323398-675f030232e7?w=200&q=80)' } },
                     { id: 'bridge', type: 'image', value: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=200&q=80)' } },
-                    { id: 'abstract-1', type: 'image', value: 'https://images.unsplash.com/photo-1508672019048-8a528d61ca20?w=1920&q=80', thumbnail: { backgroundImage: 'url(httpsSetting://images.unsplash.com/photo-1508672019048-8a528d61ca20?w=200&q=80)' } },
+                    { id: 'abstract-1', type: 'image', value: 'https://images.unsplash.com/photo-1508672019048-8a528d61ca20?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1508672019048-8a528d61ca20?w=200&q=80)' } },
                     { id: 'abstract-2', type: 'image', value: 'https://images.unsplash.com/photo-1550684376-f5a6b2a59134?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1550684376-f5a6b2a59134?w=200&q=80)' } },
                     { id: 'abstract-3', type: 'image', value: 'https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=200&q=80)' } }
                 ],
