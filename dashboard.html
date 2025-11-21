@@ -133,7 +133,7 @@
 
         .current-temp-large {
             font-size: 2.5em;
-            font-weight: 200;
+            font-weight: 500;
             line-height: 1;
             margin: 5px 0;
         }
@@ -145,7 +145,7 @@
         }
 
         .forecast-temps {
-            font-size: 1.2em;
+            font-size: 2.5em;
             font-weight: 500;
         }
 
@@ -180,7 +180,7 @@
             min-width: 0;
             display: flex;
             flex-direction: column;
-            gap: 24px;
+            gap: 12px;
             /* Increased gap */
         }
 
@@ -216,15 +216,12 @@
 
         .gcal-logo-wrapper {
             position: relative;
-            width: 70px;
-            height: 70px;
-        }
-
-        .gcal-logo-img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.3));
+            width: 45px;
+            /* Reduced to match event row height */
+            height: 45px;
+            /* Reduced to match event row height */
+            flex-shrink: 0;
+            /* Prevents squishing */
         }
 
         .gcal-date-text {
@@ -234,12 +231,19 @@
             transform: translate(-50%, -50%);
             font-family: 'Inter', sans-serif;
             font-weight: 700;
-            font-size: 1.25em;
-            /* Slightly smaller */
+            font-size: 0.85em;
+            /* Smaller font to fit the smaller icon */
             color: #4285F4;
             line-height: 1;
             letter-spacing: -1px;
             z-index: 2;
+        }
+
+        .gcal-logo-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.3));
         }
 
         /* Event Cards */
@@ -329,14 +333,14 @@
         .grid-container {
             display: flex;
             flex-direction: column;
-            gap: 24px;
+            gap: 12px;
             /* Increased gap for countdowns */
         }
 
         .event-list-container {
             display: flex;
             flex-direction: column;
-            gap: 24px;
+            gap: 12px;
         }
 
         /* Modals/Settings UI */
@@ -563,17 +567,18 @@
             </div>
 
             <div class="events-row">
-                <div class="half-column">
+                <div class="half-column" style="gap: 12px;">
 
-                    <div class="gcal-header-container" x-show="!calLoading">
-                        <div class="gcal-logo-wrapper">
+                    <div class="event-card" x-show="!calLoading"
+                        style="background: transparent; border: none; box-shadow: none; justify-content: center; cursor: default; margin-bottom: 15px;">
+                        <div class="gcal-logo-wrapper" style="width: 45px; height: 45px; margin-right: 15px;">
                             <img src="assets/gcal.png" class="gcal-logo-img">
                             <span class="gcal-date-text" x-text="calendar.dates?.today"></span>
                         </div>
-                        <span class="section-header" style="margin-bottom: 0; margin-left: 15px;">Today</span>
+                        <span class="section-header" style="margin: 0;">Today</span>
                     </div>
 
-                    <div x-show="!calLoading" class="event-list-container">
+                    <div x-show="!calLoading" class="event-list-container" style="gap: 12px;">
                         <template x-for="(event, i) in calendar.today" :key="'t'+i">
                             <div class="event-card">
                                 <span class="event-title" x-text="event.title"></span>
@@ -587,15 +592,16 @@
                         </div>
                     </div>
 
-                    <div class="gcal-header-container" style="margin-top: 25px;" x-show="!calLoading">
-                        <div class="gcal-logo-wrapper">
+                    <div class="event-card" x-show="!calLoading"
+                        style="background: transparent; border: none; box-shadow: none; justify-content: center; cursor: default;">
+                        <div class="gcal-logo-wrapper" style="width: 45px; height: 45px; margin-right: 15px;">
                             <img src="assets/gcal.png" class="gcal-logo-img">
                             <span class="gcal-date-text" x-text="calendar.dates?.tomorrow"></span>
                         </div>
-                        <span class="section-header" style="margin-bottom: 0; margin-left: 15px;">Tomorrow</span>
+                        <span class="section-header" style="margin: 0;">Tomorrow</span>
                     </div>
 
-                    <div x-show="!calLoading" class="event-list-container">
+                    <div x-show="!calLoading" class="event-list-container" style="gap: 12px;">
                         <template x-for="(event, i) in calendar.tomorrow" :key="'tm'+i">
                             <div class="event-card">
                                 <span class="event-title" x-text="event.title"></span>
@@ -609,16 +615,17 @@
                         </div>
                     </div>
 
-                    <div class="gcal-header-container" style="margin-top: 25px;" x-show="!calLoading">
-                        <div class="gcal-logo-wrapper">
+                    <div class="event-card" x-show="!calLoading"
+                        style="background: transparent; border: none; box-shadow: none; justify-content: center; cursor: default;">
+                        <div class="gcal-logo-wrapper" style="width: 45px; height: 45px; margin-right: 15px;">
                             <img src="assets/gcal.png" class="gcal-logo-img">
                             <span class="gcal-date-text" x-text="calendar.dates?.dayAfterTomorrow"></span>
                         </div>
-                        <span class="section-header" style="margin-bottom: 0; margin-left: 15px;"
+                        <span class="section-header" style="margin: 0;"
                             x-text="calendar.dates?.dayAfterTomorrowName"></span>
                     </div>
 
-                    <div x-show="!calLoading" class="event-list-container">
+                    <div x-show="!calLoading" class="event-list-container" style="gap: 12px;">
                         <template x-for="(event, i) in calendar.dayAfterTomorrow" :key="'dat'+i">
                             <div class="event-card">
                                 <span class="event-title" x-text="event.title"></span>
@@ -637,9 +644,12 @@
 
                 <div class="half-column">
 
-                    <div class="section-header header-spacer">Upcoming</div>
+                    <div class="event-card"
+                        style="background: transparent; border: none; box-shadow: none; justify-content: center; cursor: default; margin-bottom: 15px;">
+                        <span class="section-header" style="margin: 0;">Coming Up</span>
+                    </div>
 
-                    <div class="grid-container" id="countdownGrid">
+                    <div class="grid-container" id="countdownGrid" style="gap: 12px;">
                         <template x-for="event in events" :key="event.id">
                             <div class="countdown-container event-card" @click="openEditModal(event)">
                                 <span class="event-title" x-text="event.title"></span>
