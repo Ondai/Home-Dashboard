@@ -1058,7 +1058,7 @@
                                 else d.name = d.date.toLocaleDateString('en-US', { weekday: 'long' });
 
                                 if (d.high === -999) d.high = d.low;
-                                d.currentTemp = (i === 0) ? currentTemp : undefined;
+                                d.currentTemp = (i === startIndex) ? currentTemp : undefined;
 
                                 d.emoji = this.getWeatherEmoji(daily.properties.periods.find(p => {
                                     const pDate = new Date(p.startTime);
