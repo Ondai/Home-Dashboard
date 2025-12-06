@@ -487,32 +487,44 @@
 
         .background-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 10px;
+            margin-top: 10px;
         }
 
         .bg-thumbnail {
             width: 100%;
-            padding-bottom: 56.25%;
-            background-size: cover;
-            background-position: center;
-            border-radius: 8px;
+            aspect-ratio: 16/9;
+            background-color: #333;
+            border-radius: 6px;
             cursor: pointer;
             border: 2px solid transparent;
-            transition: border-color 0.2s;
-            position: relative;
+            background-size: cover;
+            background-position: center;
         }
 
         .bg-thumbnail.active {
             border-color: var(--primary-color);
         }
+
+        .glass-panel {
+            background-color: transparent;
+            border-radius: 18px;
+            padding: 20px;
+            backdrop-filter: blur(20px);
+            border: none;
+            box-shadow: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: fit-content;
+            margin: 0 auto 25px auto;
+        }
     </style>
 </head>
 
 <body x-data="countdownApp">
-
     <div class="dashboard-wrapper">
-
         <div class="settings-icon" @click="showSettingsModal = true">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white">
                 <path
@@ -520,55 +532,45 @@
                 </path>
             </svg>
         </div>
-
         <div class="main-content">
-
             <div class="weather-column">
-
-                <div class="date-header">
-                    <div class="date-display" x-text="dateString"></div>
+                <div class="glass-panel">
+                    <div class="date-header">
+                        <div class="date-display" x-text="dateString"></div>
+                    </div>
+                    <div class="clock-display">
+                        <span x-text="timeHM"></span>
+                        <span class="clock-ampm" x-text="timeAP"></span>
+                    </div>
                 </div>
-
-                <div class="clock-display">
-                    <span x-text="timeHM"></span><span class="clock-ampm" x-text="timeAP"></span>
-                </div>
-
                 <div class="forecast-grid">
                     <template x-for="(day, index) in forecast" :key="index">
-                        <div class="forecast-card">
-                            <div class="forecast-day" x-text="day.name"></div>
-
+                        <div class="forecast-day-container event-card"
+                            style="flex-direction: column; justify-content: space-between; min-height: 160px;">
                             <template x-if="index === 0 && day.currentTemp !== undefined">
-                                <div class="today-weather-row">
+                                <div class="today-weather-row"
+                                    style="display: flex; flex-direction: column; align-items: center;">
                                     <div class="weather-emoji" x-text="day.emoji"></div>
                                     <div class="current-temp-large" x-text="Math.round(day.currentTemp) + '°'"></div>
                                 </div>
                             </template>
-
                             <template x-if="index !== 0">
                                 <div style="display:contents; text-align:center;">
                                     <div class="weather-emoji" x-text="day.emoji"></div>
                                     <div class="forecast-temps">
                                         <span class="high-temp" style="color: #ff7e5f;"
-                                            x-text="Math.round(day.high) + '°'"></span> /
-                                        <span class="low-temp" style="color: #a1c4fd;"
-                                            x-text="Math.round(day.low) + '°'"></span>
+                                            x-text="Math.round(day.high) + '°'"></span>/ <span class="low-temp"
+                                            style="color: #a1c4fd;" x-text="Math.round(day.low) + '°'"></span>
                                     </div>
                                 </div>
                             </template>
-
-                            <div class="chart-container">
-                                <canvas :id="'chart-' + index"></canvas>
-                            </div>
+                            <div class="chart-container"><canvas :id="'chart-' + index"></canvas></div>
                         </div>
                     </template>
                 </div>
-
             </div>
-
             <div class="events-row">
                 <div class="half-column" style="gap: 12px;">
-
                     <div class="event-card" x-show="!calLoading"
                         style="background: transparent; border: none; box-shadow: none; justify-content: center; cursor: default; margin-bottom: 15px;">
                         <div class="gcal-logo-wrapper" style="width: 45px; height: 45px; margin-right: 15px;">
@@ -577,7 +579,6 @@
                         </div>
                         <span class="section-header" style="margin: 0;">Today</span>
                     </div>
-
                     <div x-show="!calLoading" class="event-list-container" style="gap: 12px;">
                         <template x-for="(event, i) in calendar.today" :key="'t'+i">
                             <div class="event-card">
@@ -586,12 +587,10 @@
                                     x-text="event.time"></span>
                             </div>
                         </template>
-
                         <div class="event-card" x-show="calendar.today && calendar.today.length === 0">
                             <span class="no-events" style="width:100%; text-align:center;">No events today</span>
                         </div>
                     </div>
-
                     <div class="event-card" x-show="!calLoading"
                         style="background: transparent; border: none; box-shadow: none; justify-content: center; cursor: default;">
                         <div class="gcal-logo-wrapper" style="width: 45px; height: 45px; margin-right: 15px;">
@@ -600,7 +599,6 @@
                         </div>
                         <span class="section-header" style="margin: 0;">Tomorrow</span>
                     </div>
-
                     <div x-show="!calLoading" class="event-list-container" style="gap: 12px;">
                         <template x-for="(event, i) in calendar.tomorrow" :key="'tm'+i">
                             <div class="event-card">
@@ -609,12 +607,10 @@
                                     x-text="event.time"></span>
                             </div>
                         </template>
-
                         <div class="event-card" x-show="calendar.tomorrow && calendar.tomorrow.length === 0">
                             <span class="no-events" style="width:100%; text-align:center;">No events tomorrow</span>
                         </div>
                     </div>
-
                     <div class="event-card" x-show="!calLoading"
                         style="background: transparent; border: none; box-shadow: none; justify-content: center; cursor: default;">
                         <div class="gcal-logo-wrapper" style="width: 45px; height: 45px; margin-right: 15px;">
@@ -624,7 +620,6 @@
                         <span class="section-header" style="margin: 0;"
                             x-text="calendar.dates?.dayAfterTomorrowName"></span>
                     </div>
-
                     <div x-show="!calLoading" class="event-list-container" style="gap: 12px;">
                         <template x-for="(event, i) in calendar.dayAfterTomorrow" :key="'dat'+i">
                             <div class="event-card">
@@ -633,37 +628,30 @@
                                     x-text="event.time"></span>
                             </div>
                         </template>
-
                         <div class="event-card"
                             x-show="calendar.dayAfterTomorrow && calendar.dayAfterTomorrow.length === 0">
                             <span class="no-events" style="width:100%; text-align:center;">No events</span>
                         </div>
                     </div>
-
                 </div>
-
                 <div class="half-column">
-
                     <div class="event-card"
                         style="background: transparent; border: none; box-shadow: none; justify-content: center; cursor: default; margin-bottom: 15px;">
                         <span class="section-header" style="margin: 0;">Coming Up</span>
                     </div>
-
                     <div class="grid-container" id="countdownGrid" style="gap: 12px;">
                         <template x-for="event in events" :key="event.id">
                             <div class="countdown-container event-card" @click="openEditModal(event)">
                                 <span class="event-title" x-text="event.title"></span>
                                 <div class="event-time">
-                                    <span x-show="event.isToday" class="today-badge">TODAY!</span>
+                                    <span x-show="event.isToday" class="today-badge">TODAY !</span>
                                     <span x-show="event.isTomorrow" class="time-value"
                                         style="font-size: 1.2em; font-weight: 700;">Tomorrow</span>
                                     <span x-show="event.isYesterday" class="time-value past-event"
                                         style="font-size: 1.2em; font-weight: 700;">Yesterday</span>
-
                                     <span x-show="!event.isToday && !event.isTomorrow && !event.isYesterday"
                                         x-text="event.days" class="time-value"
                                         :class="{ 'past-event': event.isPast }">0</span>
-
                                     <span x-show="!event.isToday && !event.isTomorrow && !event.isYesterday"
                                         class="time-label" :class="{ 'past-event': event.isPast }"
                                         x-text="event.isPast ? ' Days Ago' : ' Days'"></span>
@@ -675,533 +663,541 @@
                         <div class="plus-sign">+</div>
                     </div>
                 </div>
-
             </div>
-
         </div>
-
-        <div class="modal-overlay" x-show="showModal" x-cloak @click.self="closeModal()">
-            <div class="modal-content">
-                <h3 x-text="editingEvent ? 'Edit Countdown' : 'Add New Countdown'"></h3>
-                <input type="text" x-model="modalTitle" placeholder="Event Title">
-                <div class="date-input-wrapper">
-                    <input type="date" x-model="modalDate" required onkeydown="return false;">
-                </div>
-                <div class="modal-buttons">
-                    <button class="btn-delete" x-show="editingEvent" @click="deleteEvent()">Delete</button>
-                    <div class="right-buttons">
-                        <button class="btn-secondary" @click="closeModal()">Cancel</button>
-                        <button class="btn-primary" @click="saveEvent()">Save</button>
-                    </div>
+    </div>
+    <div class="modal-overlay" x-show="showModal" x-cloak @click.self="closeModal()">
+        <div class="modal-content">
+            <h3 x-text="editingEvent ? 'Edit Countdown' : 'Add New Countdown'"></h3>
+            <input type="text" x-model="modalTitle" placeholder="Event Title">
+            <div class="date-input-wrapper">
+                <input type="date" x-model="modalDate" required onkeydown="return false;">
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-delete" x-show="editingEvent" @click="deleteEvent()">Delete</button>
+                <div class="right-buttons">
+                    <button class="btn-secondary" @click="closeModal()">Cancel</button>
+                    <button class="btn-primary" @click="saveEvent()">Save</button>
                 </div>
             </div>
         </div>
-
-        <div class="modal-overlay" x-show="showSettingsModal" x-cloak @click.self="showSettingsModal = false">
-            <div class="modal-content">
-                <div class="settings-section">
-                    <h3>Background</h3>
-                    <div class="background-grid">
-                        <template x-for="bg in backgroundOptions" :key="bg.id">
-                            <div class="bg-thumbnail" :style="bg.thumbnail"
-                                :class="{ 'active': JSON.stringify(selectedBackground) === JSON.stringify(bg.value) }"
-                                @click="setBackground(bg.value, bg.type)">
-                            </div>
-                        </template>
-                    </div>
-                </div>
-                <div class="modal-buttons">
-                    <button class="btn-primary" @click="showSettingsModal = false">Done</button>
+    </div>
+    <div class="modal-overlay" x-show="showSettingsModal" x-cloak @click.self="showSettingsModal = false">
+        <div class="modal-content">
+            <div class="settings-section">
+                <h3>Background</h3>
+                <div class="background-grid">
+                    <template x-for="bg in backgroundOptions" :key="bg.id">
+                        <div class="bg-thumbnail" :style="bg.thumbnail"
+                            :class="{ 'active': JSON.stringify(selectedBackground) === JSON.stringify(bg.value) }"
+                            @click="setBackground(bg.value, bg.type)">
+                        </div>
+                    </template>
                 </div>
             </div>
+            <div class="settings-section">
+                <h3>System</h3>
+                <button class="btn-secondary" @click="checkForUpdates()" :disabled="updating"
+                    style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px;">
+                    <svg x-show="updating" class="spin" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                    </svg>
+                    <span x-text="updating ? 'Updating...' : 'Update Dashboard'"></span>
+                </button>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-primary" @click="showSettingsModal = false">Done</button>
+            </div>
         </div>
+    </div>
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('countdownApp', () => ({
+                events: [],
+                showModal: false,
+                editingEvent: null,
+                modalTitle: '',
+                modalDate: '',
+                timeHM: '',
+                timeAP: '',
+                currentDayCheck: null,
+                forecast: [],
+                chartInstances: [],
+                calendar: { today: [], tomorrow: [], dayAfterTomorrow: [], dates: {} },
+                calLoading: true,
+                calendarScriptUrl: 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec',
+                selectedBackground: 'var(--bg-color)',
+                selectedBackgroundType: 'color',
+                showSettingsModal: false,
+                updating: false,
+                currentDate: { day: '', date: '' },
+                dateString: '',
 
-        <script>
-            document.addEventListener('alpine:init', () => {
-                Alpine.data('countdownApp', () => ({
-                    events: [],
-                    showModal: false,
-                    editingEvent: null,
-                    modalTitle: '',
-                    modalDate: '',
-                    timeHM: '',
-                    timeAP: '',
-                    currentDayCheck: null,
-                    forecast: [],
-                    chartInstances: [],
-                    calendar: { today: [], tomorrow: [], dayAfterTomorrow: [], dates: {} },
-                    calLoading: true,
-                    calendarScriptUrl: 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec',
-                    selectedBackground: 'var(--bg-color)',
-                    selectedBackgroundType: 'color',
-                    showSettingsModal: false,
-                    currentDate: { day: '', date: '' },
-                    dateString: '',
+                init() {
+                    const today = new Date();
+                    const month = today.getMonth() + 1;
+                    const day = today.getDate();
+                    const year = today.getFullYear();
 
-                    init() {
-                        const today = new Date();
-                        const month = today.getMonth() + 1;
-                        const day = today.getDate();
-                        const year = today.getFullYear();
-                        this.currentDate.day = today.toLocaleDateString('en-US', { weekday: 'short' });
-                        this.currentDate.date = `${month} / ${day} / ${year}`;
-                        this.currentDayCheck = day;
-                        this.dateString = today.toLocaleDateString('en-US', {
+                    this.currentDate.day = today.toLocaleDateString('en-US', { weekday: 'short' });
+                    this.currentDate.date = `${month}/${day}/${year}`;
+                    this.currentDayCheck = day;
+
+                    this.dateString = today.toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+
+                    this.loadData();
+                    this.applyBackground(this.selectedBackground, this.selectedBackgroundType);
+
+                    this.mainTick();
+                    setInterval(() => this.mainTick(), 1000);
+
+                    this.getWeather();
+                    setInterval(() => this.getWeather(), 3600000); // Refresh weather every hour
+
+                    this.getCalendarEvents();
+                    this.updateTimers();
+
+                    setInterval(() => this.updateTimers(), 5000);
+                },
+
+                mainTick() {
+                    const now = new Date();
+                    let hours = now.getHours();
+                    const minutes = now.getMinutes();
+                    const ampm = hours >= 12 ? 'PM' : 'AM';
+                    hours = hours % 12;
+                    hours = hours ? hours : 12;
+
+                    this.timeHM = `${hours}:${minutes < 10 ? '0' + minutes : minutes}`;
+                    this.timeAP = ampm;
+
+                    const today = now.getDate();
+                    if (today !== this.currentDayCheck) {
+                        this.currentDayCheck = today;
+                        this.dateString = now.toLocaleDateString('en-US', {
                             weekday: 'long',
                             month: 'long',
                             day: 'numeric'
                         });
-
-                        this.loadData();
-                        this.applyBackground(this.selectedBackground, this.selectedBackgroundType);
-
-                        this.mainTick();
-                        setInterval(() => this.mainTick(), 1000);
-
                         this.getWeather();
                         this.getCalendarEvents();
-                        this.updateTimers();
+                    }
+                },
 
-                        setInterval(() => this.updateTimers(), 5000);
-                    },
+                loadData() {
+                    const savedEvents = localStorage.getItem('countdownEvents');
+                    if (savedEvents) this.events = JSON.parse(savedEvents);
 
-                    mainTick() {
-                        const now = new Date();
+                    const savedBg = localStorage.getItem('countdownBg');
+                    if (savedBg) {
+                        const bgData = JSON.parse(savedBg);
+                        this.selectedBackground = bgData.value;
+                        this.selectedBackgroundType = bgData.type;
+                    } else {
+                        this.selectedBackground = 'var(--bg-color)';
+                        this.selectedBackgroundType = 'color';
+                    }
+                },
 
-                        let hours = now.getHours();
-                        const minutes = now.getMinutes();
-                        const ampm = hours >= 12 ? 'PM' : 'AM';
-                        hours = hours % 12;
-                        hours = hours ? hours : 12;
-                        this.timeHM = `${hours}:${minutes < 10 ? '0' + minutes : minutes}`;
-                        this.timeAP = ampm;
-
-                        const today = now.getDate();
-                        if (today !== this.currentDayCheck) {
-                            this.currentDayCheck = today;
-
-                            this.dateString = now.toLocaleDateString('en-US', {
-                                weekday: 'long',
-                                month: 'long',
-                                day: 'numeric'
-                            });
-
-                            this.getWeather();
-                            this.getCalendarEvents();
-                        }
-                    },
-
-                    loadData() {
-                        const savedEvents = localStorage.getItem('countdownEvents');
-                        if (savedEvents) this.events = JSON.parse(savedEvents);
-                        const savedBg = localStorage.getItem('countdownBg');
-                        if (savedBg) {
-                            const bgData = JSON.parse(savedBg);
-                            this.selectedBackground = bgData.value;
-                            this.selectedBackgroundType = bgData.type;
+                async checkForUpdates() {
+                    this.updating = true;
+                    try {
+                        const response = await fetch('/update', { method: 'POST' });
+                        if (!response.ok) throw new Error('Server returned ' + response.status);
+                        const result = await response.json();
+                        if (result.success) {
+                            window.location.reload();
                         } else {
-                            this.selectedBackground = 'var(--bg-color)';
-                            this.selectedBackgroundType = 'color';
+                            alert('Update failed:\n' + result.error);
                         }
-                    },
+                    } catch (e) {
+                        alert('Update error: ' + e.message + '\nMake sure you are running the dashboard via server.py');
+                    } finally {
+                        this.updating = false;
+                    }
+                },
 
-                    saveEvents() {
-                        localStorage.setItem('countdownEvents', JSON.stringify(this.events));
-                    },
+                saveEvents() {
+                    localStorage.setItem('countdownEvents', JSON.stringify(this.events));
+                },
 
-                    applyBackground(value, type) {
-                        document.body.style.backgroundImage = 'none';
-                        document.body.style.backgroundColor = '';
-                        document.body.style.backgroundSize = '';
-                        if (type === 'color') {
-                            document.body.style.backgroundColor = value;
-                        } else if (type === 'gradient') {
-                            document.body.style.backgroundImage = value;
-                        } else if (type === 'pattern') {
-                            document.body.style.backgroundImage = value.image;
-                            document.body.style.backgroundSize = value.size;
-                        } else if (type === 'image') {
-                            document.body.style.backgroundImage = `url(${value})`;
+                applyBackground(value, type) {
+                    document.body.style.backgroundImage = 'none';
+                    document.body.style.backgroundColor = '';
+                    document.body.style.backgroundSize = '';
+
+                    if (type === 'color') {
+                        document.body.style.backgroundColor = value;
+                    } else if (type === 'gradient') {
+                        document.body.style.backgroundImage = value;
+                    } else if (type === 'pattern') {
+                        document.body.style.backgroundImage = value.image;
+                        document.body.style.backgroundSize = value.size;
+                    } else if (type === 'image') {
+                        document.body.style.backgroundImage = `url(${value})`;
+                    } else {
+                        document.body.style.backgroundColor = 'var(--bg-color)';
+                    }
+                },
+
+                setBackground(value, type) {
+                    this.selectedBackground = value;
+                    this.selectedBackgroundType = type;
+                    this.applyBackground(value, type);
+                    localStorage.setItem('countdownBg', JSON.stringify({ value, type }));
+                },
+
+                updateTimers() {
+                    const now = new Date();
+                    const localYear = now.getFullYear();
+                    const localMonth = now.getMonth();
+                    const localDay = now.getDate();
+                    const nowMidnight = Date.UTC(localYear, localMonth, localDay);
+
+                    this.events.forEach(event => {
+                        const parts = event.date.split('-').map(Number);
+                        const targetMidnight = Date.UTC(parts[0], parts[1] - 1, parts[2]);
+                        const distance = targetMidnight - nowMidnight;
+                        const days = Math.round(distance / (1000 * 60 * 60 * 24));
+
+                        event.isPast = false;
+                        event.isToday = false;
+                        event.isTomorrow = false;
+                        event.isYesterday = false;
+                        event.days = 0;
+
+                        if (days < 0) {
+                            event.isPast = true;
+                            event.days = Math.abs(days);
+                            if (event.days === 1) event.isYesterday = true;
+                        } else if (days === 0) {
+                            event.isToday = true;
                         } else {
-                            document.body.style.backgroundColor = 'var(--bg-color)';
-                        }
-                    },
-
-                    setBackground(value, type) {
-                        this.selectedBackground = value;
-                        this.selectedBackgroundType = type;
-                        this.applyBackground(value, type);
-                        localStorage.setItem('countdownBg', JSON.stringify({ value, type }));
-                    },
-
-                    updateTimers() {
-                        const now = new Date();
-                        const localYear = now.getFullYear();
-                        const localMonth = now.getMonth();
-                        const localDay = now.getDate();
-                        const nowMidnight = Date.UTC(localYear, localMonth, localDay);
-
-                        this.events.forEach(event => {
-                            const parts = event.date.split('-').map(Number);
-                            const targetMidnight = Date.UTC(parts[0], parts[1] - 1, parts[2]);
-                            const distance = targetMidnight - nowMidnight;
-                            const days = Math.round(distance / (1000 * 60 * 60 * 24));
-
                             event.isPast = false;
-                            event.isToday = false;
-                            event.isTomorrow = false;
-                            event.isYesterday = false;
-                            event.days = 0;
-
-                            if (days < 0) {
-                                event.isPast = true;
-                                event.days = Math.abs(days);
-                                if (event.days === 1) {
-                                    event.isYesterday = true;
-                                }
-                            } else if (days === 0) {
-                                event.isToday = true;
-                            } else {
-                                event.isPast = false;
-                                event.days = days;
-                                if (event.days === 1) {
-                                    event.isTomorrow = true;
-                                }
-                            }
-                        });
-                        this.events.sort((a, b) => new Date(a.date) - new Date(b.date));
-                    },
-
-                    openAddModal() {
-                        this.editingEvent = null;
-                        this.modalTitle = '';
-                        this.modalDate = '';
-                        this.showModal = true;
-                    },
-
-                    openEditModal(event) {
-                        this.editingEvent = event;
-                        this.modalTitle = event.title.replace(/ \p{Emoji}/u, '');
-                        this.modalDate = event.date;
-                        this.showModal = true;
-                    },
-
-                    closeModal() {
-                        this.showModal = false;
-                        this.editingEvent = null;
-                        this.modalTitle = '';
-                        this.modalDate = '';
-                    },
-
-                    saveEvent() {
-                        if (!this.modalTitle || !this.modalDate) {
-                            alert('Please fill in both the title and the date.');
-                            return;
+                            event.days = days;
+                            if (event.days === 1) event.isTomorrow = true;
                         }
-                        const processedTitle = this.processEventTitle(this.modalTitle);
-                        if (this.editingEvent) {
-                            this.editingEvent.title = processedTitle;
-                            this.editingEvent.date = this.modalDate;
+                    });
+                    this.events.sort((a, b) => new Date(a.date) - new Date(b.date));
+                },
+
+                openAddModal() {
+                    this.editingEvent = null;
+                    this.modalTitle = '';
+                    this.modalDate = '';
+                    this.showModal = true;
+                },
+
+                openEditModal(event) {
+                    this.editingEvent = event;
+                    this.modalTitle = event.title.replace(/ \p{Emoji}/u, '');
+                    this.modalDate = event.date;
+                    this.showModal = true;
+                },
+
+                closeModal() {
+                    this.showModal = false;
+                    this.editingEvent = null;
+                    this.modalTitle = '';
+                    this.modalDate = '';
+                },
+
+                saveEvent() {
+                    if (!this.modalTitle || !this.modalDate) {
+                        alert('Please fill in both the title and the date.');
+                        return;
+                    }
+
+                    const processedTitle = this.processEventTitle(this.modalTitle);
+
+                    if (this.editingEvent) {
+                        this.editingEvent.title = processedTitle;
+                        this.editingEvent.date = this.modalDate;
+                    } else {
+                        this.events.push({
+                            id: Date.now(),
+                            title: processedTitle,
+                            date: this.modalDate,
+                            days: 0,
+                            isPast: false,
+                            isToday: false
+                        });
+                    }
+
+                    this.updateTimers();
+                    this.saveEvents();
+                    this.closeModal();
+                },
+
+                deleteEvent() {
+                    if (!window.confirm('Are you sure you want to delete this event?')) return;
+                    this.events = this.events.filter(event => event.id !== this.editingEvent.id);
+                    this.saveEvents();
+                    this.closeModal();
+                },
+
+                processEventTitle(title) {
+                    let newTitle = title.trim();
+                    const lowerCaseTitle = newTitle.toLowerCase();
+                    const holidays = {
+                        'new year': '🎉', 'valentine': '❤️', "st patrick": '☘️',
+                        "st. patrick": '☘️', 'halloween': '🎃', 'thanksgiving': '🦃', 'christmas': '🎄',
+                        'easter': '🐰'
+                    };
+                    const birthday = '🎂';
+                    const birthdayKeywords = ['birthday', 'b-day', 'bday'];
+                    const anniversary = '💖';
+                    let emojiAdded = false;
+
+                    if (birthdayKeywords.some(keyword => lowerCaseTitle.includes(keyword))) {
+                        newTitle += ` ${birthday}`;
+                        emojiAdded = true;
+                    }
+
+                    if (!emojiAdded && lowerCaseTitle.includes('anniversary')) {
+                        newTitle += ` ${anniversary}`;
+                        emojiAdded = true;
+                    }
+
+                    if (!emojiAdded) {
+                        for (const [key, emoji] of Object.entries(holidays)) {
+                            if (lowerCaseTitle.includes(key)) {
+                                newTitle += ` ${emoji}`;
+                                break;
+                            }
+                        }
+                    }
+                    return newTitle;
+                },
+
+                getWeather() {
+                    const lat = 40.7128;
+                    const lon = -74.0060;
+                    const userAgent = { 'User-Agent': '(my-weather-dashboard, contact@example.com)' };
+
+                    fetch(`https://api.weather.gov/points/${lat},${lon}`, { headers: userAgent })
+                        .then(res => res.json())
+                        .then(data => {
+                            const gridId = data.properties.gridId;
+                            const gridX = data.properties.gridX;
+                            const gridY = data.properties.gridY;
+
+                            Promise.all([
+                                fetch(`https://api.weather.gov/gridpoints/${gridId}/${gridX},${gridY}/forecast`, { headers: userAgent }).then(r => r.json()),
+                                fetch(`https://api.weather.gov/gridpoints/${gridId}/${gridX},${gridY}/forecast/hourly`, { headers: userAgent }).then(r => r.json())
+                            ]).then(([dailyData, hourlyData]) => {
+                                this.processNWSData(dailyData, hourlyData);
+                            });
+                        })
+                        .catch(error => console.error('Error fetching NWS weather:', error));
+                },
+
+                processNWSData(daily, hourly) {
+                    const daysMap = {};
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+
+                    daily.properties.periods.forEach(p => {
+                        const date = new Date(p.startTime);
+                        date.setHours(0, 0, 0, 0);
+                        const dateKey = date.toISOString();
+
+                        if (!daysMap[dateKey]) {
+                            daysMap[dateKey] = {
+                                date: date,
+                                name: '',
+                                high: -999,
+                                low: 999,
+                                icon: p.icon,
+                                hourlyPrecip: []
+                            };
+                        }
+
+                        if (p.isDaytime) {
+                            daysMap[dateKey].high = p.temperature;
+                            daysMap[dateKey].icon = p.icon;
                         } else {
-                            this.events.push({
-                                id: Date.now(),
-                                title: processedTitle,
-                                date: this.modalDate,
-                                days: 0,
-                                isPast: false,
-                                isToday: false
+                            daysMap[dateKey].low = p.temperature;
+                            if (daysMap[dateKey].high === -999) daysMap[dateKey].icon = p.icon;
+                        }
+                    });
+
+                    const currentTemp = hourly.properties.periods[0].temperature;
+
+                    hourly.properties.periods.forEach(p => {
+                        const date = new Date(p.startTime);
+                        const hour = date.getHours();
+                        date.setHours(0, 0, 0, 0);
+                        const dateKey = date.toISOString();
+
+                        if (daysMap[dateKey]) {
+                            daysMap[dateKey].hourlyPrecip.push({
+                                x: hour,
+                                y: p.probabilityOfPrecipitation.value || 0
                             });
                         }
-                        this.updateTimers();
-                        this.saveEvents();
-                        this.closeModal();
-                    },
+                    });
 
-                    deleteEvent() {
-                        if (!window.confirm('Are you sure you want to delete this event?')) {
-                            return;
-                        }
-                        this.events = this.events.filter(event => event.id !== this.editingEvent.id);
-                        this.saveEvents();
-                        this.closeModal();
-                    },
+                    const sortedKeys = Object.keys(daysMap).sort();
+                    const todayKey = today.toISOString();
+                    const startIndex = sortedKeys.indexOf(todayKey);
+                    const finalDays = [];
 
-                    processEventTitle(title) {
-                        let newTitle = title.trim();
-                        const lowerCaseTitle = newTitle.toLowerCase();
-                        const holidays = {
-                            'new year': '🎉', 'valentine': '❤️', "st patrick": '☘️',
-                            "st. patrick": '☘️', 'halloween': '🎃', 'thanksgiving': '🦃', 'christmas': '🎄',
-                            'easter': '🐰'
-                        };
-                        const birthday = '🎂';
-                        const birthdayKeywords = ['birthday', 'b-day', 'bday'];
-                        const anniversary = '💖';
-                        let emojiAdded = false;
+                    if (startIndex > -1) {
+                        for (let i = startIndex; i < startIndex + 3; i++) {
+                            if (sortedKeys[i]) {
+                                const d = daysMap[sortedKeys[i]];
+                                if (i === startIndex) d.name = "Today";
+                                else if (i === startIndex + 1) d.name = "Tomorrow";
+                                else d.name = d.date.toLocaleDateString('en-US', { weekday: 'long' });
 
-                        if (birthdayKeywords.some(keyword => lowerCaseTitle.includes(keyword))) {
-                            newTitle += ` ${birthday}`;
-                            emojiAdded = true;
-                        }
-                        if (!emojiAdded && lowerCaseTitle.includes('anniversary')) {
-                            newTitle += ` ${anniversary}`;
-                            emojiAdded = true;
-                        }
-                        if (!emojiAdded) {
-                            for (const [key, emoji] of Object.entries(holidays)) {
-                                if (lowerCaseTitle.includes(key)) {
-                                    newTitle += ` ${emoji}`;
-                                    break;
-                                }
+                                if (d.high === -999) d.high = d.low;
+                                d.currentTemp = (i === 0) ? currentTemp : undefined;
+
+                                d.emoji = this.getWeatherEmoji(daily.properties.periods.find(p => {
+                                    const pDate = new Date(p.startTime);
+                                    pDate.setHours(0, 0, 0, 0);
+                                    return pDate.getTime() === d.date.getTime();
+                                })?.shortForecast);
+
+                                finalDays.push(d);
                             }
                         }
-                        return newTitle;
-                    },
+                    }
+                    this.forecast = finalDays;
+                    this.$nextTick(() => { this.renderCharts(); });
+                },
 
-                    getWeather() {
-                        const lat = 40.7128;
-                        const lon = -74.0060;
-                        const userAgent = { 'User-Agent': '(my-weather-dashboard, contact@example.com)' };
+                getWeatherEmoji(text) {
+                    if (!text) return '❓';
+                    const t = text.toLowerCase();
+                    if (t.includes('snow') || t.includes('blizzard') || t.includes('flurries')) return '❄️';
+                    if (t.includes('rain') || t.includes('drizzle') || t.includes('shower')) return '🌧️';
+                    if (t.includes('thunder') || t.includes('t-storm')) return '⛈️';
+                    if (t.includes('fog') || t.includes('mist') || t.includes('haze')) return '🌫️';
+                    if (t.includes('cloud') || t.includes('overcast')) return '☁️';
+                    if (t.includes('partly') && t.includes('sunny')) return '⛅';
+                    if (t.includes('sunny') || t.includes('clear') || t.includes('fair')) return '☀️';
+                    if (t.includes('wind')) return '💨';
+                    return '🌤️';
+                },
 
-                        fetch(`https://api.weather.gov/points/${lat},${lon}`, { headers: userAgent })
-                            .then(res => res.json())
-                            .then(data => {
-                                const gridId = data.properties.gridId;
-                                const gridX = data.properties.gridX;
-                                const gridY = data.properties.gridY;
+                renderCharts() {
+                    this.chartInstances.forEach(chart => chart.destroy());
+                    this.chartInstances = [];
 
-                                Promise.all([
-                                    fetch(`https://api.weather.gov/gridpoints/${gridId}/${gridX},${gridY}/forecast`, { headers: userAgent }).then(r => r.json()),
-                                    fetch(`https://api.weather.gov/gridpoints/${gridId}/${gridX},${gridY}/forecast/hourly`, { headers: userAgent }).then(r => r.json())
-                                ]).then(([dailyData, hourlyData]) => {
-                                    this.processNWSData(dailyData, hourlyData);
-                                });
-                            })
-                            .catch(error => console.error('Error fetching NWS weather:', error));
-                    },
+                    this.forecast.forEach((day, index) => {
+                        const ctx = document.getElementById('chart-' + index);
+                        if (!ctx) return;
 
-                    processNWSData(daily, hourly) {
-                        const daysMap = {};
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
-
-                        daily.properties.periods.forEach(p => {
-                            const date = new Date(p.startTime);
-                            date.setHours(0, 0, 0, 0);
-                            const dateKey = date.toISOString();
-
-                            if (!daysMap[dateKey]) {
-                                daysMap[dateKey] = {
-                                    date: date,
-                                    name: '',
-                                    high: -999,
-                                    low: 999,
-                                    icon: p.icon,
-                                    hourlyPrecip: []
-                                };
-                            }
-
-                            if (p.isDaytime) {
-                                daysMap[dateKey].high = p.temperature;
-                                daysMap[dateKey].icon = p.icon;
-                            } else {
-                                daysMap[dateKey].low = p.temperature;
-                                if (daysMap[dateKey].high === -999) daysMap[dateKey].icon = p.icon;
-                            }
+                        const labels = day.hourlyPrecip.map(p => {
+                            let h = p.x;
+                            let ampm = h >= 12 ? 'pm' : 'am';
+                            h = h % 12;
+                            h = h ? h : 12;
+                            return h + ampm;
                         });
+                        const dataPoints = day.hourlyPrecip.map(p => p.y);
 
-                        const currentTemp = hourly.properties.periods[0].temperature;
-
-                        hourly.properties.periods.forEach(p => {
-                            const date = new Date(p.startTime);
-                            const hour = date.getHours();
-                            date.setHours(0, 0, 0, 0);
-                            const dateKey = date.toISOString();
-
-                            if (daysMap[dateKey]) {
-                                daysMap[dateKey].hourlyPrecip.push({
-                                    x: hour,
-                                    y: p.probabilityOfPrecipitation.value || 0
-                                });
-                            }
-                        });
-
-                        const sortedKeys = Object.keys(daysMap).sort();
-                        const todayKey = today.toISOString();
-                        const startIndex = sortedKeys.indexOf(todayKey);
-
-                        const finalDays = [];
-                        if (startIndex > -1) {
-                            for (let i = startIndex; i < startIndex + 3; i++) {
-                                if (sortedKeys[i]) {
-                                    const d = daysMap[sortedKeys[i]];
-                                    if (i === startIndex) d.name = "Today";
-                                    else if (i === startIndex + 1) d.name = "Tomorrow";
-                                    else d.name = d.date.toLocaleDateString('en-US', { weekday: 'long' });
-
-                                    if (d.high === -999) d.high = d.low;
-
-                                    d.currentTemp = (i === 0) ? currentTemp : undefined;
-
-                                    d.emoji = this.getWeatherEmoji(daily.properties.periods.find(p => {
-                                        const pDate = new Date(p.startTime);
-                                        pDate.setHours(0, 0, 0, 0);
-                                        return pDate.getTime() === d.date.getTime();
-                                    })?.shortForecast);
-
-                                    finalDays.push(d);
-                                }
-                            }
-                        }
-
-                        this.forecast = finalDays;
-
-                        this.$nextTick(() => {
-                            this.renderCharts();
-                        });
-                    },
-
-                    getWeatherEmoji(text) {
-                        if (!text) return '❓';
-                        const t = text.toLowerCase();
-                        if (t.includes('snow') || t.includes('blizzard') || t.includes('flurries')) return '❄️';
-                        if (t.includes('rain') || t.includes('drizzle') || t.includes('shower')) return '🌧️';
-                        if (t.includes('thunder') || t.includes('t-storm')) return '⛈️';
-                        if (t.includes('fog') || t.includes('mist') || t.includes('haze')) return '🌫️';
-                        if (t.includes('cloud') || t.includes('overcast')) return '☁️';
-                        if (t.includes('partly') && t.includes('sunny')) return '⛅';
-                        if (t.includes('sunny') || t.includes('clear') || t.includes('fair')) return '☀️';
-                        if (t.includes('wind')) return '💨';
-                        return '🌤️';
-                    },
-
-                    renderCharts() {
-                        this.chartInstances.forEach(chart => chart.destroy());
-                        this.chartInstances = [];
-
-                        this.forecast.forEach((day, index) => {
-                            const ctx = document.getElementById('chart-' + index);
-                            if (!ctx) return;
-
-                            const labels = day.hourlyPrecip.map(p => {
-                                let h = p.x;
-                                let ampm = h >= 12 ? 'pm' : 'am';
-                                h = h % 12;
-                                h = h ? h : 12;
-                                return h + ampm;
-                            });
-                            const dataPoints = day.hourlyPrecip.map(p => p.y);
-
-                            const chart = new Chart(ctx, {
-                                type: 'line',
-                                data: {
-                                    labels: labels,
-                                    datasets: [{
-                                        label: 'Rain %',
-                                        data: dataPoints,
-                                        borderColor: '#3b82f6',
-                                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                                        borderWidth: 2,
-                                        pointRadius: 0,
-                                        fill: true,
-                                        tension: 0.4
-                                    }]
-                                },
-                                options: {
-                                    responsive: true,
-                                    maintainAspectRatio: false,
-                                    plugins: { legend: { display: false } },
-                                    scales: {
-                                        y: {
-                                            min: 0, max: 100,
-                                            display: true,
-                                            position: 'right',
-                                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                                            ticks: {
-                                                stepSize: 50,
-                                                color: '#a0a0a0',
-                                                font: { size: 9 }
-                                            }
-                                        },
-                                        x: {
-                                            grid: { display: false },
-                                            ticks: {
-                                                color: '#a0a0a0',
-                                                font: { size: 10 },
-                                                maxTicksLimit: 6
-                                            }
-                                        }
+                        const chart = new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: labels,
+                                datasets: [{
+                                    label: 'Rain %',
+                                    data: dataPoints,
+                                    borderColor: '#3b82f6',
+                                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                                    borderWidth: 2,
+                                    pointRadius: 0,
+                                    fill: true,
+                                    tension: 0.4
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                scales: {
+                                    y: {
+                                        min: 0, max: 100,
+                                        display: true,
+                                        position: 'right',
+                                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                        ticks: { stepSize: 50, color: '#a0a0a0', font: { size: 9 } }
+                                    },
+                                    x: {
+                                        grid: { display: false },
+                                        ticks: { color: '#a0a0a0', font: { size: 10 }, maxTicksLimit: 6 }
                                     }
                                 }
-                            });
-                            this.chartInstances.push(chart);
+                            }
                         });
-                    },
+                        this.chartInstances.push(chart);
+                    });
+                },
 
-                    getCalendarEvents() {
-                        if (!this.calendarScriptUrl || this.calendarScriptUrl.includes('PASTE')) {
-                            console.error('Google Apps Script URL is missing.');
-                            this.calLoading = false;
-                            return;
-                        }
+                getCalendarEvents() {
+                    if (!this.calendarScriptUrl || this.calendarScriptUrl.includes('PASTE')) {
+                        console.error('Google Apps Script URL is missing.');
+                        this.calLoading = false;
+                        return;
+                    }
+                    this.calLoading = true;
+                    const errorTimeout = setTimeout(() => {
+                        console.error('Google Calendar request timed out.');
+                        this.calLoading = false;
+                        if (window.handleCalendarData) delete window.handleCalendarData;
+                    }, 10000);
 
-                        this.calLoading = true;
+                    window.handleCalendarData = (data) => {
+                        clearTimeout(errorTimeout);
+                        this.calendar = data;
+                        this.calLoading = false;
+                        const script = document.getElementById('jsonp-script');
+                        if (script) document.body.removeChild(script);
+                        delete window.handleCalendarData;
+                    };
 
-                        const errorTimeout = setTimeout(() => {
-                            console.error('Google Calendar request timed out.');
-                            this.calLoading = false;
-                            if (window.handleCalendarData) delete window.handleCalendarData;
-                        }, 10000);
+                    const script = document.createElement('script');
+                    script.id = 'jsonp-script';
+                    script.src = this.calendarScriptUrl + '?callback=handleCalendarData';
+                    document.body.appendChild(script);
+                },
 
-                        window.handleCalendarData = (data) => {
-                            clearTimeout(errorTimeout);
-                            this.calendar = data;
-                            this.calLoading = false;
-
-                            document.body.removeChild(document.getElementById('jsonp-script'));
-                            delete window.handleCalendarData;
-                        };
-
-                        const script = document.createElement('script');
-                        script.id = 'jsonp-script';
-                        script.src = this.calendarScriptUrl + '?callback=handleCalendarData';
-                        document.body.appendChild(script);
-                    },
-
-                    backgroundOptions: [
-                        { id: 'none', type: 'color', value: 'var(--bg-color)', thumbnail: { backgroundColor: 'var(--bg-color)' } },
-                        { id: 'color-darkblue', type: 'color', value: '#191970', thumbnail: { backgroundColor: '#191970' } },
-                        { id: 'color-darkgreen', type: 'color', value: '#006400', thumbnail: { backgroundColor: '#006400' } },
-                        { id: 'color-darkpurple', type: 'color', value: '#36013F', thumbnail: { backgroundColor: '#36013F' } },
-                        { id: 'color-greyblue', type: 'color', value: '#2c3e50', thumbnail: { backgroundColor: '#2c3e50' } },
-                        { id: 'gradient-sky', type: 'gradient', value: 'linear-gradient(to right top, #a1c4fd, #c2e9fb)', thumbnail: { backgroundImage: 'linear-gradient(to right top, #a1c4fd, #c2e9fb)' } },
-                        { id: 'gradient-sunset', type: 'gradient', value: 'linear-gradient(to right top, #ff7e5f, #feb47b)', thumbnail: { backgroundImage: 'linear-gradient(to right top, #ff7e5f, #feb47b)' } },
-                        { id: 'gradient-forest', type: 'gradient', value: 'linear-gradient(to right top, #a8ff78, #78ffd6)', thumbnail: { backgroundImage: 'linear-gradient(to right top, #a8ff78, #78ffd6)' } },
-                        { id: 'gradient-ocean', type: 'gradient', value: 'linear-gradient(to right, #00c6ff, #0072ff)', thumbnail: { backgroundImage: 'linear-gradient(to right, #00c6ff, #0072ff)' } },
-                        { id: 'pattern-dots', type: 'pattern', value: { image: 'radial-gradient(#ffffff33 1px, transparent 1px)', size: '8px 8px' }, thumbnail: { backgroundImage: 'radial-gradient(#ffffff33 1px, transparent 1px)', backgroundSize: '8px 8px' } },
-                        { id: 'pattern-lines', type: 'pattern', value: { image: 'repeating-linear-gradient(45deg, #ffffff33 0, #ffffff33 1px, transparent 0, transparent 8px)', size: '8px 8px' }, thumbnail: { backgroundImage: 'repeating-linear-gradient(45deg, #ffffff33 0, #ffffff33 1px, transparent 0, transparent 8px)', backgroundSize: '8px 8px' } },
-                        { id: 'hills', type: 'image', value: 'https://images.unsplash.com/photo-1532274402911-5a369e4c4bb5?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1532274402911-5a369e4c4bb5?w=200&q=80)' } },
-                        { id: 'mountains', type: 'image', value: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1519681393784-d120267933ba?w=200&q=80)' } },
-                        { id: 'desert', type: 'image', value: 'https://images.unsplash.com/photo-1473580044384-7ba9967e16a0?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1473580044384-7ba9967e16a0?w=200&q=80)' } },
-                        { id: 'forest', type: 'image', value: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1448375240586-882707db888b?w=200&q=80)' } },
-                        { id: 'beach', type: 'image', value: 'https://images.unsplash.com/photo-1507525428034-b723cf961dde?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1507525428034-b723cf961dde?w=200&q=80)' } },
-                        { id: 'lake', type: 'image', value: 'https://images.unsplash.com/photo-1476610381469-b0c62c03710d?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1476610381469-b0c62c03710d?w=200&q=80)' } },
-                        { id: 'waterfall', type: 'image', value: 'https://images.unsplash.com/photo-1433086966358-54859d09313e?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1433086966358-54859d09313e?w=200&q=80)' } },
-                        { id: 'field', type: 'image', value: 'https://images.unsplash.com/photo-1437964724103-8b05e31e0c3f?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1437964724103-8b05e31e0c3f?w=200&q=80)' } },
-                        { id: 'aurora', type: 'image', value: 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=200&q=80)' } },
-                        { id: 'nebula', type: 'image', value: 'https://images.unsplash.com/photo-1504333638930-c87873244201?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1504333638930-c87873244201?w=200&q=80)' } },
-                        { id: 'galaxy', type: 'image', value: 'https://images.unsplash.com/photo-1502134249126-c0979a91d331?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1502134249126-c0979a91d331?w=200&q=80)' } },
-                        { id: 'earth', type: 'image', value: 'https://images.unsplash.com/photo-1454789548928-9ef95a60b6d5?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1454789548928-9ef95a60b6d5?w=200&q=80)' } },
-                        { id: 'cityscape', type: 'image', value: 'https://images.unsplash.com/photo-1480714370402-eddc0a455511?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1480714370402-eddc0a455511?w=200&q=80)' } },
-                        { id: 'city-night', type: 'image', value: 'https://images.unsplash.com/photo-1519125323398-675f030232e7?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1519125323398-675f030232e7?w=200&q=80)' } },
-                        { id: 'bridge', type: 'image', value: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=200&q=80)' } },
-                        { id: 'abstract-1', type: 'image', value: 'https://images.unsplash.com/photo-1508672019048-8a528d61ca20?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1508672019048-8a528d61ca20?w=200&q=80)' } },
-                        { id: 'abstract-2', type: 'image', value: 'https://images.unsplash.com/photo-1550684376-f5a6b2a59134?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1550684376-f5a6b2a59134?w=200&q=80)' } },
-                        { id: 'abstract-3', type: 'image', value: 'https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=200&q=80)' } }
-                    ],
-                }));
-            });
-        </script>
+                backgroundOptions: [
+                    { id: 'none', type: 'color', value: 'var(--bg-color)', thumbnail: { backgroundColor: 'var(--bg-color)' } },
+                    { id: 'gradient-midnight', type: 'gradient', value: 'linear-gradient(to bottom, #0f2027, #203a43, #2c5364)', thumbnail: { backgroundImage: 'linear-gradient(to bottom, #0f2027, #203a43, #2c5364)' } },
+                    { id: 'gradient-emerald', type: 'gradient', value: 'linear-gradient(to bottom, #11998e, #38ef7d)', thumbnail: { backgroundImage: 'linear-gradient(to bottom, #11998e, #38ef7d)' } },
+                    { id: 'gradient-royal', type: 'gradient', value: 'linear-gradient(to bottom, #6441A5, #2a0845)', thumbnail: { backgroundImage: 'linear-gradient(to bottom, #6441A5, #2a0845)' } },
+                    { id: 'gradient-slate', type: 'gradient', value: 'linear-gradient(to bottom, #434343, #000000)', thumbnail: { backgroundImage: 'linear-gradient(to bottom, #434343, #000000)' } },
+                    { id: 'gradient-sky', type: 'gradient', value: 'linear-gradient(to right top, #a1c4fd, #c2e9fb)', thumbnail: { backgroundImage: 'linear-gradient(to right top, #a1c4fd, #c2e9fb)' } },
+                    { id: 'gradient-sunset', type: 'gradient', value: 'linear-gradient(to right top, #ff7e5f, #feb47b)', thumbnail: { backgroundImage: 'linear-gradient(to right top, #ff7e5f, #feb47b)' } },
+                    { id: 'gradient-forest', type: 'gradient', value: 'linear-gradient(to right top, #a8ff78, #78ffd6)', thumbnail: { backgroundImage: 'linear-gradient(to right top, #a8ff78, #78ffd6)' } },
+                    { id: 'gradient-ocean', type: 'gradient', value: 'linear-gradient(to right, #00c6ff, #0072ff)', thumbnail: { backgroundImage: 'linear-gradient(to right, #00c6ff, #0072ff)' } },
+                    { id: 'gradient-cosmic', type: 'gradient', value: 'linear-gradient(to right, #8E2DE2, #4A00E0)', thumbnail: { backgroundImage: 'linear-gradient(to right, #8E2DE2, #4A00E0)' } },
+                    { id: 'gradient-dawn', type: 'gradient', value: 'linear-gradient(to right, #f12711, #f5af19)', thumbnail: { backgroundImage: 'linear-gradient(to right, #f12711, #f5af19)' } },
+                    { id: 'hills', type: 'image', value: 'https://images.unsplash.com/photo-1532274402911-5a369e4c4bb5?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1532274402911-5a369e4c4bb5?w=200&q=80)' } },
+                    { id: 'mountains', type: 'image', value: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1519681393784-d120267933ba?w=200&q=80)' } },
+                    { id: 'desert', type: 'image', value: 'https://images.unsplash.com/photo-1473580044384-7ba9967e16a0?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1473580044384-7ba9967e16a0?w=200&q=80)' } },
+                    { id: 'forest', type: 'image', value: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1448375240586-882707db888b?w=200&q=80)' } },
+                    { id: 'aurora', type: 'image', value: 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=200&q=80)' } },
+                    { id: 'bridge', type: 'image', value: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=200&q=80)' } },
+                    { id: 'abstract-3', type: 'image', value: 'https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=200&q=80)' } },
+                    { id: 'space-nasa', type: 'image', value: 'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=200&q=80)' } },
+                    { id: 'christmas-tree', type: 'image', value: 'https://images.unsplash.com/photo-1543258103-a62bdc069871?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1543258103-a62bdc069871?w=200&q=80)' } },
+                    { id: 'cozy-cabin', type: 'image', value: 'https://images.unsplash.com/photo-1510798831971-661eb04b3739?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1510798831971-661eb04b3739?w=200&q=80)' } },
+                    { id: 'christmas-lights', type: 'image', value: 'https://images.unsplash.com/photo-1512418490979-92798cec1380?w=1920&q=80', thumbnail: { backgroundImage: 'url(https://images.unsplash.com/photo-1512418490979-92798cec1380?w=200&q=80)' } }
+                ]
+            }));
+        });
+    </script>
     </div>
 </body>
 
