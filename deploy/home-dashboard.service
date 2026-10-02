@@ -1,0 +1,13 @@
+[Unit]
+Description=Home Dashboard server (http://localhost:8000)
+
+[Service]
+ExecStart=/usr/bin/python3 @REPO@/server.py
+WorkingDirectory=@REPO@
+Environment=PYTHONUNBUFFERED=1
+# Also how "Update Dashboard" picks up a changed server.py: it exits and comes back on the new code.
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=default.target

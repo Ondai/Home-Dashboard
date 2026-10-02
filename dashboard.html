@@ -706,6 +706,9 @@
                     </svg>
                     <span x-text="updating ? 'Updating...' : 'Update Dashboard'"></span>
                 </button>
+                <!-- Only on the Pi itself; from a phone this would close the wall's kiosk -->
+                <button class="btn-secondary" x-show="['localhost', '127.0.0.1'].includes(location.hostname)"
+                    @click="exitToDesktop()" style="width: 100%; margin-top: 10px;">Exit to Desktop</button>
             </div>
             <div class="modal-buttons">
                 <button class="btn-primary" @click="showSettingsModal = false">Done</button>
@@ -751,8 +754,10 @@
                         day: 'numeric'
                     });
 
-                    this.loadData();
-                    this.applyBackground(this.selectedBackground, this.selectedBackgroundType);
+                    this.loadData().then(() => {
+                        this.applyBackground(this.selectedBackground, this.selectedBackgroundType);
+                        this.updateTimers();
+                    });
 
                     this.mainTick();
                     setInterval(() => this.mainTick(), 1000);
@@ -761,7 +766,6 @@
                     setInterval(() => this.getWeather(), 3600000); // Refresh weather every hour
 
                     this.getCalendarEvents();
-                    this.updateTimers();
 
                     setInterval(() => this.updateTimers(), 5000);
                 },
@@ -790,18 +794,54 @@
                     }
                 },
 
-                loadData() {
-                    const savedEvents = localStorage.getItem('countdownEvents');
-                    if (savedEvents) this.events = JSON.parse(savedEvents);
+                async loadData() {
+                    let state = null;
+                    try {
+                        const res = await fetch('/api/state');
+                        if (res.ok) state = await res.json();
+                    } catch (e) {
+                        console.error('Could not load saved state from server:', e);
+                    }
 
-                    const savedBg = localStorage.getItem('countdownBg');
-                    if (savedBg) {
-                        const bgData = JSON.parse(savedBg);
-                        this.selectedBackground = bgData.value;
-                        this.selectedBackgroundType = bgData.type;
+                    if (state) {
+                        localStorage.setItem('dashboardState', JSON.stringify(state));
                     } else {
-                        this.selectedBackground = 'var(--bg-color)';
-                        this.selectedBackgroundType = 'color';
+                        // Server unreachable (or opened as a file): use the last copy this browser saw,
+                        // falling back to the keys used before state moved to the server.
+                        state = JSON.parse(localStorage.getItem('dashboardState') || 'null') || {
+                            events: JSON.parse(localStorage.getItem('countdownEvents') || '[]'),
+                            background: JSON.parse(localStorage.getItem('countdownBg') || 'null')
+                        };
+                    }
+
+                    this.events = state.events || [];
+                    if (state.background) {
+                        this.selectedBackground = state.background.value;
+                        this.selectedBackgroundType = state.background.type;
+                    }
+                },
+
+                saveState() {
+                    const state = {
+                        events: this.events.map(({ id, title, date }) => ({ id, title, date })),
+                        background: { type: this.selectedBackgroundType, value: this.selectedBackground }
+                    };
+                    localStorage.setItem('dashboardState', JSON.stringify(state));
+                    fetch('/api/state', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(state)
+                    })
+                        .then(res => { if (!res.ok) throw new Error('Server returned ' + res.status); })
+                        .catch(e => alert('Could not save to the dashboard server: ' + e.message));
+                },
+
+                async waitForServer() {
+                    for (let i = 0; i < 30; i++) {
+                        await new Promise(r => setTimeout(r, 1000));
+                        try {
+                            if ((await fetch('/api/state')).ok) return;
+                        } catch (e) { /* still restarting */ }
                     }
                 },
 
@@ -812,6 +852,8 @@
                         if (!response.ok) throw new Error('Server returned ' + response.status);
                         const result = await response.json();
                         if (result.success) {
+                            // server.py changed, so it's restarting; reloading now would hit a dead server
+                            if (result.restart) await this.waitForServer();
                             window.location.reload();
                         } else {
                             alert('Update failed:\n' + result.error);
@@ -823,8 +865,13 @@
                     }
                 },
 
-                saveEvents() {
-                    localStorage.setItem('countdownEvents', JSON.stringify(this.events));
+                async exitToDesktop() {
+                    if (!window.confirm('Exit to the desktop?\n\nTo bring the dashboard back, open "Home Dashboard" from the Raspberry Pi menu.')) return;
+                    try {
+                        await fetch('/kiosk/exit', { method: 'POST' });
+                    } catch (e) {
+                        alert('Could not exit: ' + e.message);
+                    }
                 },
 
                 applyBackground(value, type) {
@@ -850,7 +897,7 @@
                     this.selectedBackground = value;
                     this.selectedBackgroundType = type;
                     this.applyBackground(value, type);
-                    localStorage.setItem('countdownBg', JSON.stringify({ value, type }));
+                    this.saveState();
                 },
 
                 updateTimers() {
@@ -931,14 +978,14 @@
                     }
 
                     this.updateTimers();
-                    this.saveEvents();
+                    this.saveState();
                     this.closeModal();
                 },
 
                 deleteEvent() {
                     if (!window.confirm('Are you sure you want to delete this event?')) return;
                     this.events = this.events.filter(event => event.id !== this.editingEvent.id);
-                    this.saveEvents();
+                    this.saveState();
                     this.closeModal();
                 },
 

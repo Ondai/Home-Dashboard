@@ -1,0 +1,3 @@
+# Saved countdowns and settings; live only on the Pi
+data/
+__pycache__/

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Home Dashboard
+Comment=Show the dashboard full screen
+Exec=@REPO@/start_dashboard.sh
+Icon=web-browser
+Categories=Utility;
+Terminal=false
