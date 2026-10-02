@@ -501,6 +501,41 @@
             min-height: 1.3em;
         }
 
+        /* The wall scrolls by swipe, without a scrollbar; .more-below says what's out of view instead */
+        html.kiosk {
+            scrollbar-width: none;
+        }
+
+        .more-below-fade {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 140px;
+            background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.45));
+            pointer-events: none;
+            z-index: 49;
+        }
+
+        .more-below {
+            position: fixed;
+            left: 50%;
+            bottom: 24px;
+            transform: translateX(-50%);
+            z-index: 50;
+            padding: 14px 28px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 999px;
+            background: rgba(28, 28, 30, 0.92);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            color: var(--text-color);
+            font-family: inherit;
+            font-size: 1.25em;
+            font-weight: 500;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
         /* On-screen keyboard, only on the wall (phones bring their own) */
         .touch-keyboard {
             position: fixed;
@@ -940,6 +975,13 @@
         </div>
     </div>
     <template x-if="isKiosk">
+        <div>
+            <div class="more-below-fade" x-show="moreBelowText" x-cloak></div>
+            <button class="more-below" x-show="moreBelowText" x-cloak @click="scrollDown()"
+                x-text="'↓  ' + moreBelowText"></button>
+        </div>
+    </template>
+    <template x-if="isKiosk">
         <!-- pointerdown.prevent keeps focus (and the caret) in the text field while typing -->
         <div class="touch-keyboard" x-show="kbVisible" x-cloak>
             <template x-for="(row, r) in kbLayouts[kbPage]" :key="kbPage + r">
@@ -991,6 +1033,7 @@
             // Kept outside Alpine's reactive data: a proxied <input> throws on setRangeText()
             let kbTarget = null;
             let kbRepeat = null;
+            let returnToTopTimer = null;
 
             const pad = n => String(n).padStart(2, '0');
             const isoDate = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -1034,6 +1077,8 @@
                 },
                 pickerYear: 0,
                 pickerMonth: 0,
+                moreBelowText: '',
+                returnToTopAfterMs: 60 * 1000,
                 events: [],
                 showModal: false,
                 editingEvent: null,
@@ -1091,6 +1136,16 @@
                     this.getCalendarEvents();
 
                     setInterval(() => this.updateTimers(), 5000);
+
+                    if (this.isKiosk) {
+                        document.documentElement.classList.add('kiosk');
+                        const update = () => this.updateMoreBelow();
+                        addEventListener('scroll', () => { update(); this.noteActivity(); }, { passive: true });
+                        addEventListener('pointerdown', () => this.noteActivity());
+                        addEventListener('resize', update);
+                        // Countdowns, calendar entries and weather all arrive after load and change the height
+                        new ResizeObserver(update).observe(document.querySelector('.main-content'));
+                    }
                 },
 
                 mainTick() {
@@ -1328,6 +1383,37 @@
                     const when = days === 0 ? 'today' : days === 1 ? 'tomorrow' : days === -1 ? 'yesterday'
                         : days > 0 ? `in ${days} days` : `${-days} days ago`;
                     return `${label} · ${when}`;
+                },
+
+                // --- Out-of-view content (wall only) ---
+
+                // Counts cards cut off by the bottom of the screen for the "↓ N more" pill
+                updateMoreBelow() {
+                    const hidden = selector => [...document.querySelectorAll(selector)].filter(el => {
+                        const r = el.getBoundingClientRect();
+                        return r.height > 0 && r.bottom > innerHeight + 1;
+                    }).length;
+                    const countdowns = hidden('#countdownGrid .countdown-container');
+                    const calendar = hidden('.event-list-container .event-card:not(:has(.no-events))');
+                    const parts = [];
+                    if (countdowns) parts.push(`${countdowns} more countdown${countdowns === 1 ? '' : 's'}`);
+                    if (calendar) parts.push(`${calendar} more calendar event${calendar === 1 ? '' : 's'}`);
+                    this.moreBelowText = parts.join(' · ');
+                },
+
+                scrollDown() {
+                    scrollBy({ top: innerHeight * 0.6, behavior: 'smooth' });
+                },
+
+                // After a minute untouched, scroll back to the top so the wall doesn't sit halfway down
+                noteActivity() {
+                    clearTimeout(returnToTopTimer);
+                    returnToTopTimer = setTimeout(() => {
+                        if (this.showModal || this.showSettingsModal) return this.noteActivity();
+                        scrollTo({ top: 0, behavior: 'smooth' });
+                        // Smooth scrolling can stall when the window isn't being painted; make sure we get there
+                        setTimeout(() => { if (scrollY > 0) scrollTo(0, 0); }, 2000);
+                    }, this.returnToTopAfterMs);
                 },
 
                 // --- On-screen keyboard (wall only) ---
