@@ -401,7 +401,8 @@
             padding: 30px;
             border-radius: 15px;
             width: 90%;
-            max-width: 400px;
+            max-width: 480px;
+            box-sizing: border-box;
             display: flex;
             flex-direction: column;
             gap: 20px;
@@ -413,45 +414,156 @@
             border: 1px solid #444;
             border-radius: 8px;
             color: var(--text-color);
-            font-size: 1em;
+            font-size: 1.2em;
+            font-family: inherit;
             padding: 12px;
         }
 
-        .date-input-wrapper {
-            position: relative;
+        /* Leave room for the on-screen keyboard below the modal */
+        .modal-overlay.keyboard-open {
+            align-items: flex-start;
+            padding-top: 80px;
+            box-sizing: border-box;
         }
 
-        .date-input-wrapper::before {
-            content: "---- / -- / --";
-            position: absolute;
-            left: 12px;
-            top: 12px;
-            color: #777;
-            pointer-events: none;
+        /* Date picker: a tap-sized month grid (the native date input is mouse-sized) */
+        .date-picker {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
         }
 
-        .date-input-wrapper input[type="date"]:valid::before {
-            display: none;
+        .date-picker-header {
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
-        input[type="date"] {
+        .date-picker-month {
+            flex: 1;
+            text-align: center;
+            font-size: 1.15em;
+            font-weight: 600;
+        }
+
+        .date-picker-nav {
+            width: 48px;
+            height: 48px;
+            border: none;
+            border-radius: 10px;
             background: #333;
-            border: 1px solid #444;
-            border-radius: 8px;
             color: var(--text-color);
-            font-size: 1em;
-            padding: 11px;
-            font-family: inherit;
-        }
-
-        input[type="date"]:invalid {
-            color: transparent;
-        }
-
-        input[type="date"]::-webkit-calendar-picker-indicator {
-            filter: invert(1);
+            font-size: 1.3em;
             cursor: pointer;
-            transform: scale(1.4);
+        }
+
+        .date-picker-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+
+        .date-picker-weekday {
+            text-align: center;
+            font-size: 0.8em;
+            color: var(--text-secondary-color);
+            padding: 4px 0;
+        }
+
+        .date-picker-day {
+            height: 48px;
+            border: none;
+            border-radius: 10px;
+            background: transparent;
+            color: var(--text-color);
+            font-size: 1.05em;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .date-picker-day.other-month {
+            color: #555;
+        }
+
+        .date-picker-day.today {
+            box-shadow: inset 0 0 0 2px var(--primary-color);
+        }
+
+        .date-picker-day.selected {
+            background: var(--primary-color);
+            color: white;
+            font-weight: 700;
+        }
+
+        .date-picker-summary {
+            text-align: center;
+            color: var(--text-secondary-color);
+            min-height: 1.3em;
+        }
+
+        /* On-screen keyboard, only on the wall (phones bring their own) */
+        .touch-keyboard {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 200;
+            padding: 12px 10px;
+            background: rgba(18, 18, 20, 0.97);
+            border-top: 1px solid rgba(255, 255, 255, 0.12);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        .kb-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .kb-key {
+            flex: 1 1 0;
+            height: 80px;
+            padding: 0;
+            border: none;
+            border-radius: 10px;
+            background: #3a3a3c;
+            color: white;
+            font-size: 30px;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .kb-key.special {
+            background: #2c2c2e;
+            font-size: 22px;
+        }
+
+        .kb-key.wide {
+            flex-grow: 1.6;
+        }
+
+        .kb-key.space {
+            flex-grow: 5;
+        }
+
+        .kb-key.done {
+            flex-grow: 1.6;
+            background: var(--primary-color);
+            font-size: 22px;
+            font-weight: 600;
+        }
+
+        .kb-key.shift-on {
+            background: #e5e5ea;
+            color: black;
+        }
+
+        /* Set from script: :active doesn't apply when pointerdown is prevented to keep the field focused */
+        .kb-key.pressed {
+            filter: brightness(1.6);
         }
 
         .modal-buttons {
@@ -539,6 +651,23 @@
             margin: 0 auto 25px auto;
         }
 
+        /* The wall: a bigger modal and date picker, in proportion to the full-width keyboard */
+        @media (min-width: 900px) {
+            .modal-content {
+                max-width: 640px;
+                font-size: 1.3em;
+            }
+
+            .date-picker-day,
+            .date-picker-nav {
+                height: 64px;
+            }
+
+            .date-picker-nav {
+                width: 64px;
+            }
+        }
+
         /* Phones (the wall is 1080px wide, so none of this applies there) */
         @media (max-width: 700px) {
             .dashboard-wrapper {
@@ -611,6 +740,20 @@
 
             .event-time {
                 font-size: 1.05em;
+            }
+
+            .modal-content {
+                padding: 20px;
+            }
+
+            .date-picker-nav {
+                width: 40px;
+                height: 44px;
+            }
+
+            .date-picker-month {
+                white-space: nowrap;
+                font-size: 1em;
             }
         }
     </style>
@@ -760,12 +903,32 @@
             </div>
         </div>
     </div>
-    <div class="modal-overlay" x-show="showModal" x-cloak @click.self="closeModal()">
+    <div class="modal-overlay" x-show="showModal" x-cloak @click.self="closeModal()"
+        :class="{ 'keyboard-open': kbVisible }">
         <div class="modal-content">
             <h3 x-text="editingEvent ? 'Edit Countdown' : 'Add New Countdown'"></h3>
-            <input type="text" x-model="modalTitle" placeholder="Event Title">
-            <div class="date-input-wrapper">
-                <input type="date" x-model="modalDate" required onkeydown="return false;">
+            <!-- On the wall, inputmode="none" keeps the system keyboard away; ours opens on focus instead -->
+            <input type="text" x-ref="titleInput" x-model="modalTitle" placeholder="Event Title" maxlength="80"
+                autocomplete="off" :inputmode="isKiosk ? 'none' : 'text'" @focus="isKiosk && kbOpen($event.target)"
+                @blur="kbClose()">
+            <div class="date-picker">
+                <div class="date-picker-header">
+                    <button class="date-picker-nav" @click="shiftPickerMonth(-12)" aria-label="Previous year">«</button>
+                    <button class="date-picker-nav" @click="shiftPickerMonth(-1)" aria-label="Previous month">‹</button>
+                    <span class="date-picker-month" x-text="pickerLabel()"></span>
+                    <button class="date-picker-nav" @click="shiftPickerMonth(1)" aria-label="Next month">›</button>
+                    <button class="date-picker-nav" @click="shiftPickerMonth(12)" aria-label="Next year">»</button>
+                </div>
+                <div class="date-picker-grid">
+                    <template x-for="(weekday, i) in ['S', 'M', 'T', 'W', 'T', 'F', 'S']" :key="i">
+                        <span class="date-picker-weekday" x-text="weekday"></span>
+                    </template>
+                    <template x-for="day in pickerDays()" :key="day.date">
+                        <button class="date-picker-day" x-text="day.day" @click="modalDate = day.date" :class="{
+                            'other-month': !day.inMonth, today: day.isToday, selected: day.date === modalDate }"></button>
+                    </template>
+                </div>
+                <div class="date-picker-summary" x-text="pickerSummary()"></div>
             </div>
             <div class="modal-buttons">
                 <button class="btn-delete" x-show="editingEvent" @click="deleteEvent()">Delete</button>
@@ -776,6 +939,20 @@
             </div>
         </div>
     </div>
+    <template x-if="isKiosk">
+        <!-- pointerdown.prevent keeps focus (and the caret) in the text field while typing -->
+        <div class="touch-keyboard" x-show="kbVisible" x-cloak>
+            <template x-for="(row, r) in kbLayouts[kbPage]" :key="kbPage + r">
+                <div class="kb-row">
+                    <template x-for="(key, k) in row" :key="k">
+                        <button class="kb-key" :class="kbKeyClass(key)" x-text="kbLabel(key)"
+                            @pointerdown.prevent="kbDown(key)" @pointerup="kbUp()" @pointerleave="kbUp()"
+                            @pointercancel="kbUp()"></button>
+                    </template>
+                </div>
+            </template>
+        </div>
+    </template>
     <div class="modal-overlay" x-show="showSettingsModal" x-cloak @click.self="showSettingsModal = false">
         <div class="modal-content">
             <div class="settings-section">
@@ -801,7 +978,7 @@
                     <span x-text="updating ? 'Updating...' : 'Update Dashboard'"></span>
                 </button>
                 <!-- Only on the Pi itself; from a phone this would close the wall's kiosk -->
-                <button class="btn-secondary" x-show="['localhost', '127.0.0.1'].includes(location.hostname)"
+                <button class="btn-secondary" x-show="isKiosk"
                     @click="exitToDesktop()" style="width: 100%; margin-top: 10px;">Exit to Desktop</button>
             </div>
             <div class="modal-buttons">
@@ -811,7 +988,52 @@
     </div>
     <script>
         document.addEventListener('alpine:init', () => {
+            // Kept outside Alpine's reactive data: a proxied <input> throws on setRangeText()
+            let kbTarget = null;
+            let kbRepeat = null;
+
+            const pad = n => String(n).padStart(2, '0');
+            const isoDate = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+            // Whole calendar days from today to a YYYY-MM-DD date (negative if past); DST-safe
+            const daysUntil = (dateStr) => {
+                const now = new Date();
+                const [y, m, d] = dateStr.split('-').map(Number);
+                return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000);
+            };
+
             Alpine.data('countdownApp', () => ({
+                // The wall itself (served to its own browser); phones and other screens get native keyboards
+                isKiosk: ['localhost', '127.0.0.1'].includes(location.hostname),
+                kbVisible: false,
+                kbPage: 'abc',
+                kbShift: false,
+                kbPressed: null,
+                kbLayouts: {
+                    abc: [
+                        ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
+                        ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+                        ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', "'"],
+                        ['{shift}', 'z', 'x', 'c', 'v', 'b', 'n', 'm', '{bksp}'],
+                        ['{sym}', '{emoji}', ',', '{space}', '.', '{done}']
+                    ],
+                    sym: [
+                        ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
+                        ['!', '@', '#', '$', '%', '&', '*', '(', ')', '-'],
+                        ['+', '=', '/', ':', ';', '"', '?', '_', '~', "'"],
+                        ['<', '>', '[', ']', '|', '\\', '°', '{bksp}'],
+                        ['{abc}', '{emoji}', ',', '{space}', '.', '{done}']
+                    ],
+                    emoji: [
+                        ['🎂', '🎉', '🎁', '🎈', '❤️', '💕', '💖', '💍', '👶', '🎓'],
+                        ['✈️', '🏖️', '🚗', '🏕️', '⛷️', '🎢', '🎄', '🎃', '🦃', '🐰'],
+                        ['🍀', '🎆', '🎇', '✨', '🍎', '🍽️', '🎵', '⚽', '🐶', '⭐'],
+                        ['😀', '😍', '🥳', '🙏', '👏', '🔥', '🌸', '☀️', '❄️', '{bksp}'],
+                        ['{abc}', '{sym}', ',', '{space}', '.', '{done}']
+                    ]
+                },
+                pickerYear: 0,
+                pickerMonth: 0,
                 events: [],
                 showModal: false,
                 editingEvent: null,
@@ -1013,17 +1235,8 @@
                 },
 
                 updateTimers() {
-                    const now = new Date();
-                    const localYear = now.getFullYear();
-                    const localMonth = now.getMonth();
-                    const localDay = now.getDate();
-                    const nowMidnight = Date.UTC(localYear, localMonth, localDay);
-
                     this.events.forEach(event => {
-                        const parts = event.date.split('-').map(Number);
-                        const targetMidnight = Date.UTC(parts[0], parts[1] - 1, parts[2]);
-                        const distance = targetMidnight - nowMidnight;
-                        const days = Math.round(distance / (1000 * 60 * 60 * 24));
+                        const days = daysUntil(event.date);
 
                         event.isPast = false;
                         event.isToday = false;
@@ -1050,21 +1263,165 @@
                     this.editingEvent = null;
                     this.modalTitle = '';
                     this.modalDate = '';
+                    this.showPickerMonthOf(isoDate(new Date()));
                     this.showModal = true;
+                    // On the wall, start typing right away. Open the keyboard directly rather than via the
+                    // focus event, which Chromium holds back while its window isn't the focused one.
+                    if (this.isKiosk) this.$nextTick(() => {
+                        this.$refs.titleInput.focus();
+                        this.kbOpen(this.$refs.titleInput);
+                    });
                 },
 
                 openEditModal(event) {
                     this.editingEvent = event;
-                    this.modalTitle = event.title.replace(/ \p{Emoji}/u, '');
+                    this.modalTitle = event.title; // as saved, emoji included
                     this.modalDate = event.date;
+                    this.showPickerMonthOf(event.date);
                     this.showModal = true;
                 },
 
                 closeModal() {
+                    this.kbClose();
                     this.showModal = false;
                     this.editingEvent = null;
                     this.modalTitle = '';
                     this.modalDate = '';
+                },
+
+                // --- Date picker ---
+
+                showPickerMonthOf(dateStr) {
+                    const [y, m] = dateStr.split('-').map(Number);
+                    this.pickerYear = y;
+                    this.pickerMonth = m - 1;
+                },
+
+                shiftPickerMonth(months) {
+                    const d = new Date(this.pickerYear, this.pickerMonth + months, 1);
+                    this.pickerYear = d.getFullYear();
+                    this.pickerMonth = d.getMonth();
+                },
+
+                pickerLabel() {
+                    return new Date(this.pickerYear, this.pickerMonth, 1)
+                        .toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                },
+
+                // Six full weeks starting on Sunday, so the picker never changes height
+                pickerDays() {
+                    const first = new Date(this.pickerYear, this.pickerMonth, 1);
+                    const today = isoDate(new Date());
+                    return Array.from({ length: 42 }, (_, i) => {
+                        const d = new Date(this.pickerYear, this.pickerMonth, 1 - first.getDay() + i);
+                        const date = isoDate(d);
+                        return { date, day: d.getDate(), inMonth: d.getMonth() === this.pickerMonth, isToday: date === today };
+                    });
+                },
+
+                pickerSummary() {
+                    if (!this.modalDate) return 'Tap a date';
+                    const [y, m, d] = this.modalDate.split('-').map(Number);
+                    const label = new Date(y, m - 1, d).toLocaleDateString('en-US',
+                        { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+                    const days = daysUntil(this.modalDate);
+                    const when = days === 0 ? 'today' : days === 1 ? 'tomorrow' : days === -1 ? 'yesterday'
+                        : days > 0 ? `in ${days} days` : `${-days} days ago`;
+                    return `${label} · ${when}`;
+                },
+
+                // --- On-screen keyboard (wall only) ---
+
+                kbOpen(el) {
+                    kbTarget = el;
+                    this.kbPage = 'abc';
+                    this.kbAutoShift();
+                    this.kbVisible = true;
+                },
+
+                kbClose() {
+                    this.kbUp();
+                    this.kbVisible = false;
+                    kbTarget = null;
+                },
+
+                // Capitalize the first letter of the title and of each word, like the existing titles
+                kbAutoShift() {
+                    const before = kbTarget ? kbTarget.value.slice(0, kbTarget.selectionStart) : '';
+                    this.kbShift = before === '' || before.endsWith(' ');
+                },
+
+                kbLabel(key) {
+                    const labels = { '{shift}': '⇧', '{bksp}': '⌫', '{space}': 'space', '{done}': 'Done',
+                        '{sym}': '?123', '{abc}': 'ABC', '{emoji}': '😀' };
+                    if (labels[key]) return labels[key];
+                    return this.kbShift && this.kbPage === 'abc' ? key.toUpperCase() : key;
+                },
+
+                kbKeyClass(key) {
+                    return {
+                        special: ['{shift}', '{bksp}', '{sym}', '{abc}', '{emoji}'].includes(key),
+                        wide: key === '{shift}' || key === '{bksp}',
+                        space: key === '{space}',
+                        done: key === '{done}',
+                        'shift-on': key === '{shift}' && this.kbShift,
+                        pressed: key === this.kbPressed
+                    };
+                },
+
+                kbDown(key) {
+                    // Page keys are replaced mid-press, so their pointerup never arrives; don't highlight them
+                    const pages = { '{sym}': 'sym', '{abc}': 'abc', '{emoji}': 'emoji' };
+                    if (pages[key]) {
+                        this.kbPage = pages[key];
+                        return;
+                    }
+                    this.kbPressed = key;
+                    switch (key) {
+                        case '{shift}': this.kbShift = !this.kbShift; return;
+                        case '{done}':
+                            if (kbTarget) kbTarget.blur();
+                            this.kbClose();
+                            return;
+                        case '{bksp}':
+                            this.kbBackspace();
+                            // Hold to keep deleting
+                            kbRepeat = setTimeout(() => { kbRepeat = setInterval(() => this.kbBackspace(), 70); }, 450);
+                            return;
+                        case '{space}': this.kbInsert(' '); return;
+                        default: this.kbInsert(this.kbLabel(key));
+                    }
+                },
+
+                kbUp() {
+                    clearTimeout(kbRepeat);
+                    clearInterval(kbRepeat);
+                    kbRepeat = null;
+                    this.kbPressed = null;
+                },
+
+                kbInsert(text) {
+                    const el = kbTarget;
+                    if (!el || (el.maxLength > 0 && el.value.length >= el.maxLength)) return;
+                    el.setRangeText(text, el.selectionStart, el.selectionEnd, 'end');
+                    el.dispatchEvent(new Event('input', { bubbles: true })); // updates x-model
+                    this.kbAutoShift();
+                },
+
+                kbBackspace() {
+                    const el = kbTarget;
+                    if (!el) return;
+                    let start = el.selectionStart;
+                    const end = el.selectionEnd;
+                    if (start === end) {
+                        if (start === 0) return;
+                        // Remove a whole character as seen on screen; emoji like ❤️ are several code units
+                        const chars = [...new Intl.Segmenter().segment(el.value.slice(0, start))];
+                        start -= chars[chars.length - 1].segment.length;
+                    }
+                    el.setRangeText('', start, end, 'end');
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                    this.kbAutoShift();
                 },
 
                 async saveEvent() {
@@ -1099,6 +1456,9 @@
 
                 processEventTitle(title) {
                     let newTitle = title.trim();
+                    // Only decorate titles that have no emoji yet, so an edit or a hand-picked emoji
+                    // never ends up doubled (e.g. "Valentine's Day ❤️ ❤️")
+                    if (/\p{Extended_Pictographic}/u.test(newTitle)) return newTitle;
                     const lowerCaseTitle = newTitle.toLowerCase();
                     const holidays = {
                         'new year': '🎉', 'valentine': '❤️', "st patrick": '☘️',
