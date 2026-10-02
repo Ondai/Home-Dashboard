@@ -19,7 +19,6 @@
         rel="stylesheet">
 
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         :root {
@@ -112,52 +111,142 @@
             max-width: 100%;
         }
 
-        .forecast-grid {
+        /* Today in detail (now, high/low, when it'll rain, next hours), the next two days beside it */
+        .weather-row {
             display: grid;
-            /* minmax(0, ...) lets columns shrink below the charts' drawn width, so the charts resize on phones */
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns: minmax(0, 2.1fr) minmax(0, 1fr);
             gap: 15px;
-            width: 100%;
         }
 
-        .forecast-card {
+        .weather-card {
             background-color: var(--surface-color);
-            border-radius: 18px;
-            padding: 15px;
-            backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 18px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: space-between;
-            min-height: 160px;
-        }
-
-        .forecast-day {
-            font-size: 1em;
-            font-weight: 600;
-            color: var(--text-secondary-color);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .current-temp-large {
-            font-size: 2.5em;
-            font-weight: 500;
-            line-height: 1;
-            margin: 5px 0;
         }
 
         .weather-emoji {
-            font-size: 3em;
             line-height: 1;
             filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.3));
         }
 
-        .forecast-temps {
-            font-size: 2.5em;
+        .weather-today {
+            display: flex;
+            align-items: center;
+            gap: 26px;
+            padding: 16px 24px;
+        }
+
+        .weather-now {
+            text-align: center;
+            min-width: 140px;
+        }
+
+        .weather-now .weather-emoji {
+            font-size: 3.2em;
+        }
+
+        .weather-now-temp {
+            font-size: 3.4em;
+            font-weight: 600;
+            line-height: 1.05;
+        }
+
+        .weather-condition {
+            max-width: 170px;
+            color: var(--text-secondary-color);
+            font-size: 1.05em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .weather-details {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .weather-hilo {
+            font-size: 1.45em;
+            font-weight: 600;
+        }
+
+        .weather-rain {
+            font-size: 1.3em;
             font-weight: 500;
+            color: #7fb2ff;
+        }
+
+        .weather-rain.dry {
+            color: var(--text-secondary-color);
+        }
+
+        .weather-hours {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 6px;
+            margin-top: 4px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            text-align: center;
+        }
+
+        .weather-hour-time {
+            color: var(--text-secondary-color);
+        }
+
+        .weather-hour-temp {
+            font-size: 1.35em;
+            font-weight: 600;
+        }
+
+        .weather-hour-rain,
+        .weather-day-rain {
+            color: #7fb2ff;
+        }
+
+        .weather-hour-rain.low,
+        .weather-day-rain.low {
+            color: var(--text-secondary-color);
+        }
+
+        .weather-days {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .weather-day {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 18px;
+            font-size: 1.3em;
+            white-space: nowrap;
+        }
+
+        .weather-day-name {
+            font-weight: 600;
+            min-width: 2.4em;
+        }
+
+        .weather-day .weather-emoji {
+            font-size: 1.3em;
+        }
+
+        .weather-day-rain {
+            margin-left: auto;
+            font-size: 0.8em;
+        }
+
+        .weather-unavailable {
+            padding: 18px;
+            text-align: center;
+            color: var(--text-secondary-color);
         }
 
         .high-temp {
@@ -166,14 +255,6 @@
 
         .low-temp {
             color: #a1c4fd;
-            margin-left: 8px;
-        }
-
-        .chart-container {
-            position: relative;
-            height: 60px;
-            width: 100%;
-            margin-top: auto;
         }
 
         /* Events Section */
@@ -891,30 +972,54 @@
                 height: 32px;
             }
 
-            .forecast-grid {
+            /* Weather: today on top, the next two days below it (side by side they don't fit) */
+            .weather-row {
+                grid-template-columns: minmax(0, 1fr);
                 gap: 8px;
             }
 
-            .forecast-day-container {
-                min-height: 130px !important;
-                padding: 10px 6px;
+            .weather-days {
+                gap: 8px;
             }
 
-            .weather-emoji {
+            .weather-today {
+                gap: 14px;
+                padding: 12px 14px;
+            }
+
+            .weather-now {
+                min-width: 80px;
+            }
+
+            .weather-now .weather-emoji {
                 font-size: 2.2em;
             }
 
-            .current-temp-large {
-                font-size: 1.5em;
+            .weather-now-temp {
+                font-size: 2.2em;
             }
 
-            .forecast-temps {
-                font-size: 1.2em;
-                white-space: nowrap;
+            .weather-condition {
+                max-width: 90px;
+                font-size: 0.8em;
             }
 
-            .low-temp {
-                margin-left: 2px;
+            .weather-hilo {
+                font-size: 1.05em;
+            }
+
+            .weather-rain {
+                font-size: 0.95em;
+            }
+
+            .weather-hours {
+                font-size: 0.8em;
+            }
+
+            .weather-day {
+                gap: 6px;
+                padding: 8px 10px;
+                font-size: 0.95em;
             }
 
             /* Calendar above countdowns instead of side by side */
@@ -980,31 +1085,53 @@
                         <span class="clock-ampm" x-text="timeAP"></span>
                     </div>
                 </div>
-                <div class="forecast-grid">
-                    <template x-for="(day, index) in forecast" :key="index">
-                        <div class="forecast-day-container event-card"
-                            style="flex-direction: column; justify-content: space-between; min-height: 160px;">
-                            <template x-if="index === 0 && day.currentTemp !== undefined">
-                                <div class="today-weather-row"
-                                    style="display: flex; flex-direction: column; align-items: center;">
-                                    <div class="weather-emoji" x-text="day.emoji"></div>
-                                    <div class="current-temp-large" x-text="Math.round(day.currentTemp) + '°'"></div>
+                <template x-if="weather">
+                    <div class="weather-row">
+                        <div class="weather-card weather-today">
+                            <div class="weather-now">
+                                <div class="weather-emoji" x-text="weather.now.emoji"></div>
+                                <div class="weather-now-temp" x-text="weather.now.temp + '°'"></div>
+                                <div class="weather-condition" x-text="weather.now.condition"></div>
+                            </div>
+                            <div class="weather-details">
+                                <div class="weather-hilo">
+                                    <span class="high-temp" x-show="weather.today.high !== null"
+                                        x-text="`High ${weather.today.high}°`"></span>
+                                    <span x-show="weather.today.high !== null && weather.today.low !== null"> · </span>
+                                    <!-- In the evening the forecast no longer has today's high; tonight's low is what matters -->
+                                    <span class="low-temp" x-show="weather.today.low !== null"
+                                        x-text="`${weather.today.high !== null ? 'Low' : 'Tonight\'s low'} ${weather.today.low}°`"></span>
                                 </div>
-                            </template>
-                            <template x-if="index !== 0">
-                                <div style="display:contents; text-align:center;">
-                                    <div class="weather-emoji" x-text="day.emoji"></div>
-                                    <div class="forecast-temps">
-                                        <span class="high-temp" style="color: #ff7e5f;"
-                                            x-text="Math.round(day.high) + '°'"></span>/ <span class="low-temp"
-                                            style="color: #a1c4fd;" x-text="Math.round(day.low) + '°'"></span>
-                                    </div>
+                                <div class="weather-rain" :class="{ dry: !weather.rain.icon }"
+                                    x-text="(weather.rain.icon ? weather.rain.icon + ' ' : '') + weather.rain.text"></div>
+                                <div class="weather-hours">
+                                    <template x-for="hour in weather.hours" :key="hour.start">
+                                        <div>
+                                            <div class="weather-hour-time" x-text="hour.label"></div>
+                                            <div class="weather-hour-temp" x-text="hour.temp + '°'"></div>
+                                            <div class="weather-hour-rain" :class="{ low: hour.rain < 30 }"
+                                                x-text="hour.rain + '%'"></div>
+                                        </div>
+                                    </template>
                                 </div>
-                            </template>
-                            <div class="chart-container"><canvas :id="'chart-' + index"></canvas></div>
+                            </div>
                         </div>
-                    </template>
-                </div>
+                        <div class="weather-days">
+                            <template x-for="day in weather.days" :key="day.name">
+                                <div class="weather-card weather-day">
+                                    <span class="weather-day-name" x-text="day.name"></span>
+                                    <span class="weather-emoji" x-text="day.emoji"></span>
+                                    <span><span class="high-temp" x-text="day.high + '°'"></span> / <span class="low-temp"
+                                            x-text="day.low + '°'"></span></span>
+                                    <span class="weather-day-rain" :class="{ low: day.rain < 30 }"
+                                        x-text="'💧' + day.rain + '%'"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+                <div class="weather-card weather-unavailable" x-show="!weather && weatherFailed" x-cloak>
+                    Weather is unavailable right now. Retrying…</div>
             </div>
             <div class="events-row">
                 <div class="half-column" style="gap: 12px;" x-show="!isRemote">
@@ -1219,6 +1346,14 @@
             const pad = n => String(n).padStart(2, '0');
             const isoDate = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
+            // 8 PM, 12 AM, ...
+            const hourLabel = d => `${d.getHours() % 12 || 12} ${d.getHours() < 12 ? 'AM' : 'PM'}`;
+
+            // Weather location; the NWS forecast URLs for it are looked up once and kept
+            const WEATHER_LAT = 40.7128;
+            const WEATHER_LON = -74.0060;
+            let weatherUrls = null;
+
             // Whole calendar days from today to a YYYY-MM-DD date (negative if past); DST-safe
             const daysUntil = (dateStr) => {
                 const now = new Date();
@@ -1286,8 +1421,9 @@
                 timeHM: '',
                 timeAP: '',
                 currentDayCheck: null,
-                forecast: [],
-                chartInstances: [],
+                weather: null,          // built by buildWeather() from the National Weather Service forecast
+                weatherFailed: false,   // the most recent update failed
+                weatherTimer: null,
                 calendar: { today: [], tomorrow: [], dayAfterTomorrow: [], dates: {} },
                 calLoading: true,     // only the first load; refreshes swap data in place
                 calLoaded: false,     // at least one successful load
@@ -1332,8 +1468,7 @@
                     this.mainTick();
                     setInterval(() => this.mainTick(), 1000);
 
-                    this.getWeather();
-                    setInterval(() => this.getWeather(), 3600000); // Refresh weather every hour
+                    this.getWeather(); // schedules its own refreshes
 
                     this.getCalendarEvents();
 
@@ -1818,172 +1953,116 @@
                     return newTitle;
                 },
 
+                // Refreshes every 30 minutes (the next-hours view goes stale quickly); after a failure the
+                // last forecast stays up and it retries in 5 minutes.
                 getWeather() {
-                    const lat = 40.7128;
-                    const lon = -74.0060;
-                    const userAgent = { 'User-Agent': '(my-weather-dashboard, contact@example.com)' };
+                    clearTimeout(this.weatherTimer); // one refresh chain, even when also called at midnight
+                    const getJson = url => fetch(url).then(res => {
+                        if (!res.ok) throw new Error(`${res.status} from ${url}`);
+                        return res.json();
+                    });
+                    // The forecast URLs for a location never change, so look them up once
+                    const urls = weatherUrls || getJson(`https://api.weather.gov/points/${WEATHER_LAT},${WEATHER_LON}`)
+                        .then(point => (weatherUrls = { daily: point.properties.forecast, hourly: point.properties.forecastHourly }));
 
-                    fetch(`https://api.weather.gov/points/${lat},${lon}`, { headers: userAgent })
-                        .then(res => res.json())
-                        .then(data => {
-                            const gridId = data.properties.gridId;
-                            const gridX = data.properties.gridX;
-                            const gridY = data.properties.gridY;
-
-                            Promise.all([
-                                fetch(`https://api.weather.gov/gridpoints/${gridId}/${gridX},${gridY}/forecast`, { headers: userAgent }).then(r => r.json()),
-                                fetch(`https://api.weather.gov/gridpoints/${gridId}/${gridX},${gridY}/forecast/hourly`, { headers: userAgent }).then(r => r.json())
-                            ]).then(([dailyData, hourlyData]) => {
-                                this.processNWSData(dailyData, hourlyData);
-                            });
+                    Promise.resolve(urls)
+                        .then(u => Promise.all([getJson(u.daily), getJson(u.hourly)]))
+                        .then(([daily, hourly]) => {
+                            this.weather = this.buildWeather(daily.properties.periods, hourly.properties.periods);
+                            this.weatherFailed = false;
+                            this.weatherTimer = setTimeout(() => this.getWeather(), 30 * 60 * 1000);
                         })
-                        .catch(error => console.error('Error fetching NWS weather:', error));
+                        .catch(error => {
+                            console.error('Weather update failed:', error);
+                            this.weatherFailed = true;
+                            this.weatherTimer = setTimeout(() => this.getWeather(), 5 * 60 * 1000);
+                        });
                 },
 
-                processNWSData(daily, hourly) {
-                    const daysMap = {};
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
+                // Turns NWS forecast periods into what the weather cards show
+                buildWeather(dailyPeriods, hourlyPeriods) {
+                    const now = new Date();
+                    const today = isoDate(now);
+                    const dayOf = period => isoDate(new Date(period.startTime));
+                    const rainChance = period => period.probabilityOfPrecipitation?.value ?? 0;
+                    const hours = hourlyPeriods.filter(p => new Date(p.endTime) > now);
+                    const current = hours[0];
 
-                    daily.properties.periods.forEach(p => {
-                        const date = new Date(p.startTime);
-                        date.setHours(0, 0, 0, 0);
-                        const dateKey = date.toISOString();
+                    const nightOf = date => dailyPeriods.find(p => !p.isDaytime && dayOf(p) === date);
+                    const todayHigh = dailyPeriods.find(p => p.isDaytime && dayOf(p) === today);
+                    const tonight = nightOf(today);
 
-                        if (!daysMap[dateKey]) {
-                            daysMap[dateKey] = {
-                                date: date,
-                                name: '',
-                                high: -999,
-                                low: 999,
-                                icon: p.icon,
-                                hourlyPrecip: []
-                            };
-                        }
-
-                        if (p.isDaytime) {
-                            daysMap[dateKey].high = p.temperature;
-                            daysMap[dateKey].icon = p.icon;
-                        } else {
-                            daysMap[dateKey].low = p.temperature;
-                            if (daysMap[dateKey].high === -999) daysMap[dateKey].icon = p.icon;
-                        }
+                    const days = dailyPeriods.filter(p => p.isDaytime && dayOf(p) > today).slice(0, 2).map(day => {
+                        const night = nightOf(dayOf(day));
+                        return {
+                            name: new Date(day.startTime).toLocaleDateString('en-US', { weekday: 'short' }),
+                            emoji: this.getWeatherEmoji(day.shortForecast, true),
+                            high: day.temperature,
+                            low: night ? night.temperature : '–',
+                            rain: Math.max(rainChance(day), night ? rainChance(night) : 0)
+                        };
                     });
 
-                    const currentTemp = hourly.properties.periods[0].temperature;
+                    return {
+                        now: {
+                            temp: current.temperature,
+                            emoji: this.getWeatherEmoji(current.shortForecast, current.isDaytime),
+                            condition: current.shortForecast
+                        },
+                        today: { high: todayHigh ? todayHigh.temperature : null, low: tonight ? tonight.temperature : null },
+                        rain: this.rainSummary(hours.slice(0, 12), rainChance),
+                        hours: hours.slice(1, 6).map(p => ({
+                            start: p.startTime,
+                            label: hourLabel(new Date(p.startTime)),
+                            temp: p.temperature,
+                            rain: rainChance(p)
+                        })),
+                        days
+                    };
+                },
 
-                    hourly.properties.periods.forEach(p => {
-                        const date = new Date(p.startTime);
-                        const hour = date.getHours();
-                        date.setHours(0, 0, 0, 0);
-                        const dateKey = date.toISOString();
+                // One line about precipitation over the next 12 hours, e.g. "Rain likely until 10 PM"
+                rainSummary(hours, rainChance) {
+                    const at = i => hourLabel(new Date(hours[i].startTime));
+                    const kind = periods => {
+                        const text = periods.map(p => p.shortForecast.toLowerCase()).join(' ');
+                        if (/snow|flurries|blizzard/.test(text)) return ['Snow', '❄️'];
+                        if (/thunder|t-storm/.test(text)) return ['Storms', '⛈️'];
+                        return ['Rain', '☔'];
+                    };
+                    const likely = i => rainChance(hours[i]) >= 50;
+                    const start = hours.findIndex((_, i) => likely(i));
 
-                        if (daysMap[dateKey]) {
-                            daysMap[dateKey].hourlyPrecip.push({
-                                x: hour,
-                                y: p.probabilityOfPrecipitation.value || 0
-                            });
-                        }
-                    });
-
-                    const sortedKeys = Object.keys(daysMap).sort();
-                    const todayKey = today.toISOString();
-                    const startIndex = sortedKeys.indexOf(todayKey);
-                    const finalDays = [];
-
-                    if (startIndex > -1) {
-                        for (let i = startIndex; i < startIndex + 3; i++) {
-                            if (sortedKeys[i]) {
-                                const d = daysMap[sortedKeys[i]];
-                                if (i === startIndex) d.name = "Today";
-                                else if (i === startIndex + 1) d.name = "Tomorrow";
-                                else d.name = d.date.toLocaleDateString('en-US', { weekday: 'long' });
-
-                                if (d.high === -999) d.high = d.low;
-                                d.currentTemp = (i === startIndex) ? currentTemp : undefined;
-
-                                d.emoji = this.getWeatherEmoji(daily.properties.periods.find(p => {
-                                    const pDate = new Date(p.startTime);
-                                    pDate.setHours(0, 0, 0, 0);
-                                    return pDate.getTime() === d.date.getTime();
-                                })?.shortForecast);
-
-                                finalDays.push(d);
-                            }
-                        }
+                    if (start === -1) {
+                        const peak = hours.reduce((best, p, i) => rainChance(p) > rainChance(hours[best]) ? i : best, 0);
+                        if (rainChance(hours[peak]) < 30) return { icon: '', text: 'No rain expected' };
+                        const [noun, icon] = kind([hours[peak]]);
+                        const when = peak === 0 ? 'now' : `around ${at(peak)}`; // hour 0 is the one we're in
+                        return { icon, text: `Chance of ${noun.toLowerCase()} ${when}` };
                     }
-                    this.forecast = finalDays;
-                    this.$nextTick(() => { this.renderCharts(); });
+                    const end = hours.findIndex((_, i) => i > start && !likely(i));
+                    const [noun, icon] = kind(hours.slice(start, end === -1 ? undefined : end));
+                    if (start === 0) {
+                        const hour = new Date().getHours();
+                        const allOf = hour >= 17 || hour < 5 ? 'all night' : 'all day';
+                        return { icon, text: end === -1 ? `${noun} likely ${allOf}` : `${noun} likely until ${at(end)}` };
+                    }
+                    return { icon, text: end === -1 ? `${noun} likely from ${at(start)}` : `${noun} likely ${at(start)}–${at(end)}` };
                 },
 
-                getWeatherEmoji(text) {
+                getWeatherEmoji(text, isDaytime = true) {
                     if (!text) return '❓';
                     const t = text.toLowerCase();
+                    // Storms before rain: "Showers And Thunderstorms" mentions both
+                    if (t.includes('thunder') || t.includes('t-storm')) return '⛈️';
                     if (t.includes('snow') || t.includes('blizzard') || t.includes('flurries')) return '❄️';
                     if (t.includes('rain') || t.includes('drizzle') || t.includes('shower')) return '🌧️';
-                    if (t.includes('thunder') || t.includes('t-storm')) return '⛈️';
                     if (t.includes('fog') || t.includes('mist') || t.includes('haze')) return '🌫️';
+                    if (t.includes('partly') || t.includes('mostly sunny') || t.includes('mostly clear')) return isDaytime ? '⛅' : '☁️';
                     if (t.includes('cloud') || t.includes('overcast')) return '☁️';
-                    if (t.includes('partly') && t.includes('sunny')) return '⛅';
-                    if (t.includes('sunny') || t.includes('clear') || t.includes('fair')) return '☀️';
+                    if (t.includes('sunny') || t.includes('clear') || t.includes('fair')) return isDaytime ? '☀️' : '🌙';
                     if (t.includes('wind')) return '💨';
-                    return '🌤️';
-                },
-
-                renderCharts() {
-                    this.chartInstances.forEach(chart => chart.destroy());
-                    this.chartInstances = [];
-
-                    this.forecast.forEach((day, index) => {
-                        const ctx = document.getElementById('chart-' + index);
-                        if (!ctx) return;
-
-                        const labels = day.hourlyPrecip.map(p => {
-                            let h = p.x;
-                            let ampm = h >= 12 ? 'pm' : 'am';
-                            h = h % 12;
-                            h = h ? h : 12;
-                            return h + ampm;
-                        });
-                        const dataPoints = day.hourlyPrecip.map(p => p.y);
-
-                        const chart = new Chart(ctx, {
-                            type: 'line',
-                            data: {
-                                labels: labels,
-                                datasets: [{
-                                    label: 'Rain %',
-                                    data: dataPoints,
-                                    borderColor: '#3b82f6',
-                                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                                    borderWidth: 2,
-                                    pointRadius: 0,
-                                    fill: true,
-                                    tension: 0.4
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                plugins: { legend: { display: false } },
-                                scales: {
-                                    y: {
-                                        min: 0, max: 100,
-                                        display: true,
-                                        position: 'right',
-                                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                                        ticks: { stepSize: 50, color: '#a0a0a0', font: { size: 9 } }
-                                    },
-                                    x: {
-                                        grid: { display: false },
-                                        // Fewer hour labels on a phone, where the cards are ~110px wide
-                                        ticks: { color: '#a0a0a0', font: { size: 10 }, maxTicksLimit: window.innerWidth < 700 ? 3 : 6 }
-                                    }
-                                }
-                            }
-                        });
-                        this.chartInstances.push(chart);
-                    });
+                    return isDaytime ? '🌤️' : '🌙';
                 },
 
                 // Loads events via JSONP, then schedules the next refresh: every 15 minutes, or in
