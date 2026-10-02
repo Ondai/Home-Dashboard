@@ -29,6 +29,11 @@ EVENT_PATH_RE = re.compile(r'^/api/events/(\d+)$')
 MAX_BODY = 256 * 1024
 
 state_lock = threading.Lock()
+# Bumped on every change. Pages wait on /api/state?since=<version>, so a change made on a
+# phone shows on the wall right away instead of at the next poll.
+state_changed = threading.Condition(state_lock)
+state_version = 0
+LONG_POLL_SECONDS = 25
 
 
 def file_hash(path):
@@ -122,10 +127,19 @@ class DashboardRequestHandler(http.server.SimpleHTTPRequestHandler):
         return json.loads(self.rfile.read(length) or b'null')
 
     def do_GET(self):
-        if self.path.split('?', 1)[0] == '/api/state':
-            with state_lock:
-                return self.send_json(200, load_state())
+        path, _, query = self.path.partition('?')
+        if path == '/api/state':
+            return self.get_state(urllib.parse.parse_qs(query).get('since', [None])[0])
         super().do_GET()
+
+    def get_state(self, since):
+        """Replies with the saved state. With ?since=<version>, first waits (up to
+        LONG_POLL_SECONDS) until the state is newer than that version."""
+        with state_changed:
+            if since is not None and since.lstrip('-').isdigit():
+                state_changed.wait_for(lambda: state_version != int(since), timeout=LONG_POLL_SECONDS)
+            state = {**load_state(), 'version': state_version}
+        self.send_json(200, state)
 
     def send_head(self):
         # Shared by GET and HEAD for static files. Normalize first so
@@ -140,8 +154,8 @@ class DashboardRequestHandler(http.server.SimpleHTTPRequestHandler):
         return super().send_head()
 
     def log_request(self, code='-', size='-'):
-        # Every open page polls /api/state; keep that out of the journal.
-        if self.path == '/api/state' and str(code) == '200':
+        # Every open page keeps a request to /api/state waiting; keep those out of the journal.
+        if self.path.split('?', 1)[0] == '/api/state' and str(code) == '200':
             return
         super().log_request(code, size)
 
@@ -150,6 +164,10 @@ class DashboardRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.update()
         elif self.path == '/kiosk/exit':
             self.exit_kiosk()
+        elif self.path == '/kiosk/start':
+            self.start_kiosk()
+        elif self.path == '/system/reboot':
+            self.reboot()
         elif self.path == '/api/events':
             self.change_state(add_event)
         else:
@@ -176,12 +194,16 @@ class DashboardRequestHandler(http.server.SimpleHTTPRequestHandler):
         Changes are applied to the current file rather than replacing it wholesale, so the wall
         and a phone editing at the same time can't overwrite each other's countdowns.
         """
+        global state_version
         try:
             body = self.read_json()
-            with state_lock:
+            with state_changed:
                 state = load_state()
                 change(state, body)
                 save_state(state)
+                state_version += 1
+                state_changed.notify_all()
+                state = {**state, 'version': state_version}
         except LookupError:
             return self.send_json(404, {'error': 'no such countdown'})
         except ValueError as e:  # includes invalid JSON
@@ -216,6 +238,29 @@ class DashboardRequestHandler(http.server.SimpleHTTPRequestHandler):
         open(KIOSK_PAUSE_FILE, 'w').close()
         self.send_json(200, {'success': True})
         subprocess.run(['pkill', '-TERM', '-f', '--', '--user-data-dir=' + KIOSK_PROFILE_DIR])
+
+    def start_kiosk(self):
+        """Brings the kiosk back after "Exit to Desktop", e.g. from a phone."""
+        # This service doesn't inherit the desktop session's environment; find its Wayland socket.
+        runtime_dir = os.environ.get('XDG_RUNTIME_DIR', f'/run/user/{os.getuid()}')
+        sockets = sorted(f for f in os.listdir(runtime_dir) if re.fullmatch(r'wayland-\d+', f))
+        if not sockets:
+            return self.send_json(503, {'success': False, 'error': 'the desktop is not running'})
+        env = dict(os.environ, XDG_RUNTIME_DIR=runtime_dir, WAYLAND_DISPLAY=sockets[0])
+        # The launcher clears the pause file and exits early if the kiosk is already running.
+        subprocess.Popen([os.path.join(ROOT, 'start_dashboard.sh')], env=env, start_new_session=True,
+                         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.send_json(200, {'success': True})
+
+    def reboot(self):
+        # logind lets the logged-in desktop user reboot without sudo. systemctl returns once the
+        # reboot is queued, so there's still time to reply with whether it was accepted.
+        try:
+            result = subprocess.run(['systemctl', 'reboot', '--no-ask-password'],
+                                    capture_output=True, text=True, timeout=15)
+        except Exception as e:
+            return self.send_json(500, {'success': False, 'error': str(e)})
+        self.send_json(200, {'success': result.returncode == 0, 'error': result.stderr.strip()})
 
 
 class DualStackServer(http.server.ThreadingHTTPServer):
