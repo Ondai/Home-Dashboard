@@ -31,6 +31,9 @@
             --shadow-color: rgba(0, 0, 0, 0.5);
             --delete-color: #FF453A;
             --success-color: #32D74B;
+            /* Headings sit directly on the background, so the text carries its own contrast:
+               a tight shadow for edges plus a wide soft one for light backgrounds */
+            --heading-shadow: 0 1px 3px rgba(0, 0, 0, 0.6), 0 2px 16px rgba(0, 0, 0, 0.45);
         }
 
         body {
@@ -74,16 +77,16 @@
             font-size: 2.2em;
             font-weight: 600;
             color: var(--text-color);
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            text-shadow: var(--heading-shadow);
             margin-bottom: 10px;
         }
 
         .clock-display {
             font-size: 7em;
             font-weight: 700;
-            color: rgba(255, 255, 255, 0.95);
+            color: var(--text-color);
             line-height: 1;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            text-shadow: var(--heading-shadow);
             letter-spacing: -0.05em;
             margin-bottom: 30px;
             text-align: center;
@@ -94,7 +97,7 @@
             font-size: 0.3em;
             font-weight: 500;
             margin-left: 10px;
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(255, 255, 255, 0.85);
             vertical-align: super;
             position: relative;
             top: -10px;
@@ -201,8 +204,72 @@
             margin-bottom: 5px;
             font-size: 1.7em;
             font-weight: 600;
-            color: rgba(255, 255, 255, 0.9);
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            color: var(--text-color);
+            text-shadow: var(--heading-shadow);
+        }
+
+        /* Today / Tomorrow / Coming Up rows: same box as an event card, so both columns line up,
+           but no fill or blur, so the background runs uninterrupted behind them */
+        .heading-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 45px;
+            padding: 12px 16px;
+            border: 1px solid transparent;
+        }
+
+        /* Shown in the calendar column until the first sync finishes; spaced like the column it stands in for */
+        .cal-loading {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .cal-spinner {
+            width: 45px;
+            height: 45px;
+            margin-right: 15px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cal-spinner::after {
+            content: '';
+            width: 30px;
+            height: 30px;
+            box-sizing: border-box;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+            animation: spin 0.9s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .skeleton-bar {
+            height: 18px;
+            border-radius: 9px;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.08) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.08) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.4s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            from {
+                background-position: 100% 0;
+            }
+
+            to {
+                background-position: -100% 0;
+            }
         }
 
         .header-spacer {
@@ -251,7 +318,7 @@
             width: 100%;
             height: 100%;
             object-fit: contain;
-            filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.3));
+            filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5)) drop-shadow(0 2px 10px rgba(0, 0, 0, 0.35));
         }
 
         /* Event Cards */
@@ -766,13 +833,9 @@
             text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
         }
 
+        /* Date and time, straight on the background (no blur box) */
         .glass-panel {
-            background-color: transparent;
-            border-radius: 18px;
             padding: 20px;
-            backdrop-filter: blur(20px);
-            border: none;
-            box-shadow: none;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -946,8 +1009,22 @@
             <div class="events-row">
                 <div class="half-column" style="gap: 12px;" x-show="!isRemote">
                     <div class="cal-status" x-show="calError" x-cloak x-text="calendarStatusText()"></div>
-                    <div class="event-card" x-show="!calLoading"
-                        style="background: transparent; border: none; box-shadow: none; justify-content: center; cursor: default; margin-bottom: 15px;">
+                    <!-- First sync can take a few seconds; show that it's coming rather than an empty column -->
+                    <div x-show="calLoading" class="cal-loading">
+                        <div class="heading-row" style="margin-bottom: 15px;">
+                            <span class="cal-spinner"></span>
+                            <span class="section-header" style="margin: 0;">Syncing Google Calendar…</span>
+                        </div>
+                        <div class="event-list-container" style="gap: 12px;">
+                            <template x-for="width in [62, 48, 70, 55]" :key="width">
+                                <div class="event-card">
+                                    <span class="skeleton-bar" :style="`width: ${width}%`"></span>
+                                    <span class="skeleton-bar" style="width: 18%"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    <div class="heading-row" x-show="!calLoading" style="margin-bottom: 15px;">
                         <div class="gcal-logo-wrapper" style="width: 45px; height: 45px; margin-right: 15px;">
                             <img src="assets/gcal.png" class="gcal-logo-img">
                             <span class="gcal-date-text" x-text="calendar.dates?.today"></span>
@@ -966,8 +1043,7 @@
                             <span class="no-events" style="width:100%; text-align:center;">No events today</span>
                         </div>
                     </div>
-                    <div class="event-card" x-show="!calLoading"
-                        style="background: transparent; border: none; box-shadow: none; justify-content: center; cursor: default;">
+                    <div class="heading-row" x-show="!calLoading">
                         <div class="gcal-logo-wrapper" style="width: 45px; height: 45px; margin-right: 15px;">
                             <img src="assets/gcal.png" class="gcal-logo-img">
                             <span class="gcal-date-text" x-text="calendar.dates?.tomorrow"></span>
@@ -986,8 +1062,7 @@
                             <span class="no-events" style="width:100%; text-align:center;">No events tomorrow</span>
                         </div>
                     </div>
-                    <div class="event-card" x-show="!calLoading"
-                        style="background: transparent; border: none; box-shadow: none; justify-content: center; cursor: default;">
+                    <div class="heading-row" x-show="!calLoading">
                         <div class="gcal-logo-wrapper" style="width: 45px; height: 45px; margin-right: 15px;">
                             <img src="assets/gcal.png" class="gcal-logo-img">
                             <span class="gcal-date-text" x-text="calendar.dates?.dayAfterTomorrow"></span>
@@ -1010,8 +1085,7 @@
                     </div>
                 </div>
                 <div class="half-column">
-                    <div class="event-card"
-                        style="background: transparent; border: none; box-shadow: none; justify-content: center; cursor: default; margin-bottom: 15px;">
+                    <div class="heading-row" style="margin-bottom: 15px;">
                         <span class="section-header" style="margin: 0;">Coming Up</span>
                         <button class="add-btn" @click="openAddModal()" aria-label="Add countdown">+</button>
                     </div>
