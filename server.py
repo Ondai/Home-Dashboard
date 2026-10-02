@@ -4,8 +4,10 @@ import json
 import os
 import posixpath
 import re
+import socket
 import subprocess
 import threading
+import time
 import urllib.parse
 
 PORT = 8000
@@ -23,6 +25,7 @@ STATIC_PREFIXES = ('/assets/',)
 
 BACKGROUND_TYPES = {'color', 'gradient', 'pattern', 'image'}
 DATE_RE = re.compile(r'^\d{4}-\d{2}-\d{2}$')
+EVENT_PATH_RE = re.compile(r'^/api/events/(\d+)$')
 MAX_BODY = 256 * 1024
 
 state_lock = threading.Lock()
@@ -49,28 +52,50 @@ def save_state(state):
     os.replace(tmp, STATE_FILE)
 
 
-def clean_state(raw):
-    """Validates a client-sent state and keeps only the fields worth persisting."""
-    if not isinstance(raw, dict) or not isinstance(raw.get('events'), list):
-        raise ValueError('expected {"events": [...], "background": ...}')
-    events = []
-    for e in raw['events']:
-        if not isinstance(e, dict):
-            raise ValueError('each event must be an object')
-        title, date, event_id = e.get('title'), e.get('date'), e.get('id')
-        if not isinstance(title, str) or not title.strip() or len(title) > 200:
-            raise ValueError('event title must be 1-200 characters')
-        if not isinstance(date, str) or not DATE_RE.match(date):
-            raise ValueError('event date must be YYYY-MM-DD')
-        if not isinstance(event_id, (int, float)):
-            raise ValueError('event id must be a number')
-        events.append({'id': event_id, 'title': title, 'date': date})
-    background = raw.get('background')
-    if background is not None:
-        if not isinstance(background, dict) or background.get('type') not in BACKGROUND_TYPES:
-            raise ValueError('invalid background')
-        background = {'type': background['type'], 'value': background.get('value')}
-    return {'events': events, 'background': background}
+def clean_event(raw):
+    """Validates a client-sent countdown and keeps only the fields worth persisting."""
+    if not isinstance(raw, dict):
+        raise ValueError('expected {"title": ..., "date": "YYYY-MM-DD"}')
+    title, date = raw.get('title'), raw.get('date')
+    if not isinstance(title, str) or not title.strip() or len(title) > 200:
+        raise ValueError('event title must be 1-200 characters')
+    if not isinstance(date, str) or not DATE_RE.match(date):
+        raise ValueError('event date must be YYYY-MM-DD')
+    return {'title': title.strip(), 'date': date}
+
+
+def clean_background(raw):
+    if not isinstance(raw, dict) or raw.get('type') not in BACKGROUND_TYPES:
+        raise ValueError('invalid background')
+    return {'type': raw['type'], 'value': raw.get('value')}
+
+
+def new_event_id(events):
+    # Millisecond timestamps, like the ids the page used to create, but never reused.
+    return max([int(time.time() * 1000)] + [e['id'] + 1 for e in events])
+
+
+def find_event(state, event_id):
+    for event in state['events']:
+        if event['id'] == event_id:
+            return event
+    raise LookupError(event_id)
+
+
+def add_event(state, body):
+    state['events'].append({'id': new_event_id(state['events']), **clean_event(body)})
+
+
+def edit_event(state, body, event_id):
+    find_event(state, event_id).update(clean_event(body))
+
+
+def delete_event(state, event_id):
+    state['events'].remove(find_event(state, event_id))
+
+
+def set_background(state, body):
+    state['background'] = clean_background(body)
 
 
 class DashboardRequestHandler(http.server.SimpleHTTPRequestHandler):
@@ -114,24 +139,54 @@ class DashboardRequestHandler(http.server.SimpleHTTPRequestHandler):
         self.path = path
         return super().send_head()
 
-    def do_PUT(self):
-        if self.path != '/api/state':
-            return self.send_error(404)
-        try:
-            state = clean_state(self.read_json())
-        except ValueError as e:  # includes json.JSONDecodeError
-            return self.send_json(400, {'success': False, 'error': str(e)})
-        with state_lock:
-            save_state(state)
-        self.send_json(200, {'success': True})
+    def log_request(self, code='-', size='-'):
+        # Every open page polls /api/state; keep that out of the journal.
+        if self.path == '/api/state' and str(code) == '200':
+            return
+        super().log_request(code, size)
 
     def do_POST(self):
         if self.path == '/update':
             self.update()
         elif self.path == '/kiosk/exit':
             self.exit_kiosk()
+        elif self.path == '/api/events':
+            self.change_state(add_event)
         else:
             self.send_error(404)
+
+    def do_PUT(self):
+        match = EVENT_PATH_RE.match(self.path)
+        if match:
+            self.change_state(lambda state, body: edit_event(state, body, int(match[1])))
+        elif self.path == '/api/background':
+            self.change_state(set_background)
+        else:
+            self.send_error(404)
+
+    def do_DELETE(self):
+        match = EVENT_PATH_RE.match(self.path)
+        if not match:
+            return self.send_error(404)
+        self.change_state(lambda state, body: delete_event(state, int(match[1])))
+
+    def change_state(self, change):
+        """Applies one change to the saved state and replies with the result.
+
+        Changes are applied to the current file rather than replacing it wholesale, so the wall
+        and a phone editing at the same time can't overwrite each other's countdowns.
+        """
+        try:
+            body = self.read_json()
+            with state_lock:
+                state = load_state()
+                change(state, body)
+                save_state(state)
+        except LookupError:
+            return self.send_json(404, {'error': 'no such countdown'})
+        except ValueError as e:  # includes invalid JSON
+            return self.send_json(400, {'error': str(e)})
+        self.send_json(200, state)
 
     def update(self):
         server_file = os.path.abspath(__file__)
@@ -163,7 +218,17 @@ class DashboardRequestHandler(http.server.SimpleHTTPRequestHandler):
         subprocess.run(['pkill', '-TERM', '-f', '--', '--user-data-dir=' + KIOSK_PROFILE_DIR])
 
 
+class DualStackServer(http.server.ThreadingHTTPServer):
+    # raspberrypi.local resolves to IPv6 as well; listening on both avoids a stall
+    # on clients that try IPv6 first.
+    address_family = socket.AF_INET6
+
+    def server_bind(self):
+        self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+        super().server_bind()
+
+
 if __name__ == '__main__':
-    with http.server.ThreadingHTTPServer(('', PORT), DashboardRequestHandler) as httpd:
+    with DualStackServer(('::', PORT), DashboardRequestHandler) as httpd:
         print(f'Serving dashboard at http://localhost:{PORT}')
         httpd.serve_forever()

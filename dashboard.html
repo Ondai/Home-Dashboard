@@ -4,6 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Lets "Add to Home Screen" on a phone open it full screen like an app -->
+    <meta name="theme-color" content="#121212">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Dashboard">
     <title>Dashboard</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -104,7 +110,8 @@
 
         .forecast-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            /* minmax(0, ...) lets columns shrink below the charts' drawn width, so the charts resize on phones */
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 15px;
             width: 100%;
         }
@@ -305,6 +312,16 @@
         .time-value.past-event,
         .time-label.past-event {
             color: var(--delete-color);
+        }
+
+        .cal-status {
+            text-align: center;
+            font-size: 1em;
+            font-weight: 500;
+            color: #FFD60A;
+            background-color: rgba(0, 0, 0, 0.35);
+            border-radius: 10px;
+            padding: 8px 12px;
         }
 
         .no-events {
@@ -520,6 +537,81 @@
             width: fit-content;
             margin: 0 auto 25px auto;
         }
+
+        /* Phones (the wall is 1080px wide, so none of this applies there) */
+        @media (max-width: 700px) {
+            .dashboard-wrapper {
+                padding: 12px;
+            }
+
+            .date-display {
+                font-size: 1.4em;
+            }
+
+            .clock-display {
+                font-size: 4.5em;
+                margin-bottom: 10px;
+            }
+
+            .glass-panel {
+                padding: 10px;
+                margin-bottom: 15px;
+            }
+
+            .settings-icon {
+                top: 12px;
+                right: 12px;
+                width: 32px;
+                height: 32px;
+            }
+
+            .forecast-grid {
+                gap: 8px;
+            }
+
+            .forecast-day-container {
+                min-height: 130px !important;
+                padding: 10px 6px;
+            }
+
+            .weather-emoji {
+                font-size: 2.2em;
+            }
+
+            .current-temp-large {
+                font-size: 1.5em;
+            }
+
+            .forecast-temps {
+                font-size: 1.2em;
+                white-space: nowrap;
+            }
+
+            .low-temp {
+                margin-left: 2px;
+            }
+
+            /* Calendar above countdowns instead of side by side */
+            .events-row {
+                flex-direction: column !important;
+            }
+
+            .half-column {
+                width: 100%;
+            }
+
+            .section-header {
+                font-size: 1.4em;
+            }
+
+            .event-title {
+                font-size: 1.15em;
+            }
+
+            .event-time {
+                font-size: 1.05em;
+            }
+        }
     </style>
 </head>
 
@@ -571,6 +663,7 @@
             </div>
             <div class="events-row">
                 <div class="half-column" style="gap: 12px;">
+                    <div class="cal-status" x-show="calError" x-cloak x-text="calendarStatusText()"></div>
                     <div class="event-card" x-show="!calLoading"
                         style="background: transparent; border: none; box-shadow: none; justify-content: center; cursor: default; margin-bottom: 15px;">
                         <div class="gcal-logo-wrapper" style="width: 45px; height: 45px; margin-right: 15px;">
@@ -587,7 +680,7 @@
                                     x-text="event.time"></span>
                             </div>
                         </template>
-                        <div class="event-card" x-show="calendar.today && calendar.today.length === 0">
+                        <div class="event-card" x-show="calLoaded && calendar.today && calendar.today.length === 0">
                             <span class="no-events" style="width:100%; text-align:center;">No events today</span>
                         </div>
                     </div>
@@ -607,7 +700,7 @@
                                     x-text="event.time"></span>
                             </div>
                         </template>
-                        <div class="event-card" x-show="calendar.tomorrow && calendar.tomorrow.length === 0">
+                        <div class="event-card" x-show="calLoaded && calendar.tomorrow && calendar.tomorrow.length === 0">
                             <span class="no-events" style="width:100%; text-align:center;">No events tomorrow</span>
                         </div>
                     </div>
@@ -629,7 +722,7 @@
                             </div>
                         </template>
                         <div class="event-card"
-                            x-show="calendar.dayAfterTomorrow && calendar.dayAfterTomorrow.length === 0">
+                            x-show="calLoaded && calendar.dayAfterTomorrow && calendar.dayAfterTomorrow.length === 0">
                             <span class="no-events" style="width:100%; text-align:center;">No events</span>
                         </div>
                     </div>
@@ -729,8 +822,13 @@
                 forecast: [],
                 chartInstances: [],
                 calendar: { today: [], tomorrow: [], dayAfterTomorrow: [], dates: {} },
-                calLoading: true,
+                calLoading: true,     // only the first load; refreshes swap data in place
+                calLoaded: false,     // at least one successful load
+                calError: false,      // the most recent load failed
+                calUpdatedAt: null,
+                calRefreshTimer: null,
                 calendarScriptUrl: 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec',
+                lastStateJson: null,
                 selectedBackground: 'var(--bg-color)',
                 selectedBackgroundType: 'color',
                 showSettingsModal: false,
@@ -754,9 +852,11 @@
                         day: 'numeric'
                     });
 
-                    this.loadData().then(() => {
-                        this.applyBackground(this.selectedBackground, this.selectedBackgroundType);
-                        this.updateTimers();
+                    // Pick up countdowns added or changed on another screen (e.g. a phone).
+                    this.loadData();
+                    setInterval(() => this.refreshState(), 15000);
+                    document.addEventListener('visibilitychange', () => {
+                        if (!document.hidden) this.refreshState();
                     });
 
                     this.mainTick();
@@ -795,45 +895,55 @@
                 },
 
                 async loadData() {
-                    let state = null;
+                    if (await this.refreshState()) return;
+                    // Server unreachable (or opened as a file): use the last copy this browser saw,
+                    // falling back to the keys used before state moved to the server.
+                    this.applyState(JSON.parse(localStorage.getItem('dashboardState') || 'null') || {
+                        events: JSON.parse(localStorage.getItem('countdownEvents') || '[]'),
+                        background: JSON.parse(localStorage.getItem('countdownBg') || 'null')
+                    });
+                },
+
+                // Fetches saved countdowns and background; false if the server can't be reached.
+                async refreshState() {
                     try {
                         const res = await fetch('/api/state');
-                        if (res.ok) state = await res.json();
+                        if (!res.ok) return false;
+                        this.applyState(await res.json());
+                        return true;
                     } catch (e) {
-                        console.error('Could not load saved state from server:', e);
-                    }
-
-                    if (state) {
-                        localStorage.setItem('dashboardState', JSON.stringify(state));
-                    } else {
-                        // Server unreachable (or opened as a file): use the last copy this browser saw,
-                        // falling back to the keys used before state moved to the server.
-                        state = JSON.parse(localStorage.getItem('dashboardState') || 'null') || {
-                            events: JSON.parse(localStorage.getItem('countdownEvents') || '[]'),
-                            background: JSON.parse(localStorage.getItem('countdownBg') || 'null')
-                        };
-                    }
-
-                    this.events = state.events || [];
-                    if (state.background) {
-                        this.selectedBackground = state.background.value;
-                        this.selectedBackgroundType = state.background.type;
+                        return false;
                     }
                 },
 
-                saveState() {
-                    const state = {
-                        events: this.events.map(({ id, title, date }) => ({ id, title, date })),
-                        background: { type: this.selectedBackgroundType, value: this.selectedBackground }
-                    };
-                    localStorage.setItem('dashboardState', JSON.stringify(state));
-                    fetch('/api/state', {
-                        method: 'PUT',
+                applyState(state) {
+                    const json = JSON.stringify(state);
+                    if (json === this.lastStateJson) return; // unchanged since the last poll; skip re-rendering
+                    this.lastStateJson = json;
+                    localStorage.setItem('dashboardState', json);
+
+                    this.events = state.events || [];
+                    this.updateTimers();
+
+                    const bg = state.background;
+                    if (bg && (bg.type !== this.selectedBackgroundType ||
+                        JSON.stringify(bg.value) !== JSON.stringify(this.selectedBackground))) {
+                        this.selectedBackground = bg.value;
+                        this.selectedBackgroundType = bg.type;
+                        this.applyBackground(bg.value, bg.type);
+                    }
+                },
+
+                // Sends one change to the server, which replies with the updated state.
+                async api(method, path, body) {
+                    const res = await fetch(path, {
+                        method,
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(state)
-                    })
-                        .then(res => { if (!res.ok) throw new Error('Server returned ' + res.status); })
-                        .catch(e => alert('Could not save to the dashboard server: ' + e.message));
+                        body: body === undefined ? undefined : JSON.stringify(body)
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok) throw new Error(data.error || 'Server returned ' + res.status);
+                    this.applyState(data);
                 },
 
                 async waitForServer() {
@@ -897,7 +1007,8 @@
                     this.selectedBackground = value;
                     this.selectedBackgroundType = type;
                     this.applyBackground(value, type);
-                    this.saveState();
+                    this.api('PUT', '/api/background', { type, value })
+                        .catch(e => alert('Could not save the background: ' + e.message));
                 },
 
                 updateTimers() {
@@ -955,38 +1066,34 @@
                     this.modalDate = '';
                 },
 
-                saveEvent() {
+                async saveEvent() {
                     if (!this.modalTitle || !this.modalDate) {
                         alert('Please fill in both the title and the date.');
                         return;
                     }
 
-                    const processedTitle = this.processEventTitle(this.modalTitle);
-
-                    if (this.editingEvent) {
-                        this.editingEvent.title = processedTitle;
-                        this.editingEvent.date = this.modalDate;
-                    } else {
-                        this.events.push({
-                            id: Date.now(),
-                            title: processedTitle,
-                            date: this.modalDate,
-                            days: 0,
-                            isPast: false,
-                            isToday: false
-                        });
+                    const event = { title: this.processEventTitle(this.modalTitle), date: this.modalDate };
+                    try {
+                        if (this.editingEvent) {
+                            await this.api('PUT', '/api/events/' + this.editingEvent.id, event);
+                        } else {
+                            await this.api('POST', '/api/events', event);
+                        }
+                        this.closeModal();
+                    } catch (e) {
+                        // Leave the modal open so nothing typed is lost
+                        alert('Could not save: ' + e.message);
                     }
-
-                    this.updateTimers();
-                    this.saveState();
-                    this.closeModal();
                 },
 
-                deleteEvent() {
+                async deleteEvent() {
                     if (!window.confirm('Are you sure you want to delete this event?')) return;
-                    this.events = this.events.filter(event => event.id !== this.editingEvent.id);
-                    this.saveState();
-                    this.closeModal();
+                    try {
+                        await this.api('DELETE', '/api/events/' + this.editingEvent.id);
+                        this.closeModal();
+                    } catch (e) {
+                        alert('Could not delete: ' + e.message);
+                    }
                 },
 
                 processEventTitle(title) {
@@ -1181,7 +1288,8 @@
                                     },
                                     x: {
                                         grid: { display: false },
-                                        ticks: { color: '#a0a0a0', font: { size: 10 }, maxTicksLimit: 6 }
+                                        // Fewer hour labels on a phone, where the cards are ~110px wide
+                                        ticks: { color: '#a0a0a0', font: { size: 10 }, maxTicksLimit: window.innerWidth < 700 ? 3 : 6 }
                                     }
                                 }
                             }
@@ -1190,32 +1298,53 @@
                     });
                 },
 
+                // Loads events via JSONP, then schedules the next refresh: every 15 minutes, or in
+                // 1 minute after a failure. Failures keep the last good events on screen.
                 getCalendarEvents() {
+                    clearTimeout(this.calRefreshTimer); // keep a single refresh chain, even when called at midnight
                     if (!this.calendarScriptUrl || this.calendarScriptUrl.includes('PASTE')) {
                         console.error('Google Apps Script URL is missing.');
                         this.calLoading = false;
                         return;
                     }
-                    this.calLoading = true;
-                    const errorTimeout = setTimeout(() => {
-                        console.error('Google Calendar request timed out.');
-                        this.calLoading = false;
-                        if (window.handleCalendarData) delete window.handleCalendarData;
-                    }, 10000);
 
-                    window.handleCalendarData = (data) => {
-                        clearTimeout(errorTimeout);
-                        this.calendar = data;
+                    // Unique per request, so a slow reply to an earlier request can't land on a newer one
+                    const callbackName = 'handleCalendarData_' + Date.now();
+                    const script = document.createElement('script');
+                    const failed = (reason) => {
+                        clearTimeout(timeout);
+                        script.remove();
+                        // If the reply still arrives later, swallow it instead of throwing ReferenceError
+                        window[callbackName] = () => delete window[callbackName];
+                        setTimeout(() => delete window[callbackName], 5 * 60 * 1000);
+                        console.error('Google Calendar request failed:', reason);
+                        this.calError = true;
                         this.calLoading = false;
-                        const script = document.getElementById('jsonp-script');
-                        if (script) document.body.removeChild(script);
-                        delete window.handleCalendarData;
+                        this.calRefreshTimer = setTimeout(() => this.getCalendarEvents(), 60 * 1000);
+                    };
+                    const timeout = setTimeout(() => failed('timed out'), 15000);
+
+                    window[callbackName] = (data) => {
+                        clearTimeout(timeout);
+                        delete window[callbackName];
+                        script.remove();
+                        this.calendar = data;
+                        this.calLoaded = true;
+                        this.calError = false;
+                        this.calLoading = false;
+                        this.calUpdatedAt = new Date();
+                        this.calRefreshTimer = setTimeout(() => this.getCalendarEvents(), 15 * 60 * 1000);
                     };
 
-                    const script = document.createElement('script');
-                    script.id = 'jsonp-script';
-                    script.src = this.calendarScriptUrl + '?callback=handleCalendarData';
+                    script.onerror = () => failed('network error');
+                    script.src = this.calendarScriptUrl + '?callback=' + callbackName;
                     document.body.appendChild(script);
+                },
+
+                calendarStatusText() {
+                    if (!this.calLoaded) return "Couldn't reach Google Calendar. Retrying…";
+                    const time = this.calUpdatedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                    return `Calendar couldn't refresh. Showing events as of ${time}.`;
                 },
 
                 backgroundOptions: [
