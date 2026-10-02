@@ -976,7 +976,7 @@
                 },
 
                 async exitToDesktop() {
-                    if (!window.confirm('Exit to the desktop?\n\nTo bring the dashboard back, open "Home Dashboard" from the Raspberry Pi menu.')) return;
+                    if (!window.confirm('Exit to the desktop?\n\nTo bring the dashboard back, double-tap "Home Dashboard" on the desktop.')) return;
                     try {
                         await fetch('/kiosk/exit', { method: 'POST' });
                     } catch (e) {
