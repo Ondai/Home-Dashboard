@@ -15,7 +15,7 @@ deploy/install.sh
 ```
 
 - **Leave the kiosk:** Settings (gear icon) → Exit to Desktop
-- **Come back:** double-tap Home Dashboard on the desktop (also in the Pi menu under Accessories)
+- **Come back:** tap the Home Dashboard button on the taskbar (also in the Pi menu under Accessories)
 - **From a phone or PC on the same network:** http://raspberrypi.local:8000
 - **Server logs:** `journalctl --user -u home-dashboard -f`
 - **Remove it all:** `deploy/install.sh --uninstall`

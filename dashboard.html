@@ -11,6 +11,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="Dashboard">
     <title>Dashboard</title>
+    <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -976,7 +977,7 @@
                 },
 
                 async exitToDesktop() {
-                    if (!window.confirm('Exit to the desktop?\n\nTo bring the dashboard back, double-tap "Home Dashboard" on the desktop.')) return;
+                    if (!window.confirm('Exit to the desktop?\n\nTo bring the dashboard back, tap the Home Dashboard button on the taskbar.')) return;
                     try {
                         await fetch('/kiosk/exit', { method: 'POST' });
                     } catch (e) {
