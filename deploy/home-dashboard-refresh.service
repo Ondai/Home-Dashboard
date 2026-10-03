@@ -1,0 +1,8 @@
+[Unit]
+Description=Restart the dashboard's Chromium to clear its memory (run nightly by the timer)
+
+[Service]
+Type=oneshot
+# Closing the kiosk Chromium makes start_dashboard.sh open a fresh one. Nothing to close (e.g. after
+# "Exit to Desktop") is fine, hence the "-" to ignore pkill's exit code.
+ExecStart=-/usr/bin/pkill -TERM -f -- --user-data-dir=%h/.local/share/home-dashboard/chromium

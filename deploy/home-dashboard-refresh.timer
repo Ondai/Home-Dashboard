@@ -1,0 +1,8 @@
+[Unit]
+Description=Nightly fresh start for the dashboard's Chromium (it grows to over 1.5 GB over weeks)
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+
+[Install]
+WantedBy=timers.target

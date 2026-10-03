@@ -104,6 +104,10 @@ def set_background(state, body):
 
 
 class DashboardRequestHandler(http.server.SimpleHTTPRequestHandler):
+    # Python 3.11 (the Pi's) doesn't map these on its own
+    extensions_map = {**http.server.SimpleHTTPRequestHandler.extensions_map,
+                      '.woff2': 'font/woff2', '.svg': 'image/svg+xml'}
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=ROOT, **kwargs)
 
