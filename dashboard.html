@@ -830,11 +830,69 @@
         /* Settings can outgrow the screen (dozens of backgrounds), so it scrolls inside */
         .settings-modal {
             max-height: calc(100vh - 40px);
-            overflow-y: auto;
+            max-height: calc(100dvh - 40px); /* phones: the visible area, not counting the address bar */
         }
 
-        html.kiosk .settings-modal {
+        .settings-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .settings-header h2 {
+            margin: 0;
+            font-size: 1.4em;
+        }
+
+        .settings-close {
+            width: 44px;
+            height: 44px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            border: none;
+            border-radius: 50%;
+            background: #3a3a3c;
+            color: var(--text-color);
+            cursor: pointer;
+        }
+
+        .settings-close svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .settings-body {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        html.kiosk .settings-body {
             scrollbar-width: none;
+        }
+
+        /* On the wall the window starts 80px down; leave the same below so it sits centered */
+        html.kiosk .settings-modal {
+            max-height: calc(100vh - 160px);
+        }
+
+        .day-name {
+            display: grid;
+            justify-items: start;
+        }
+
+        .day-name > * {
+            grid-area: 1 / 1;
+        }
+
+        .day-name-sizer {
+            visibility: hidden;
         }
 
         .background-group h4 {
@@ -848,7 +906,8 @@
 
         .background-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            /* minmax(0, ...): long names ("Brooklyn Bridge") get an ellipsis instead of widening the column */
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 10px;
         }
 
@@ -1063,7 +1122,7 @@
             }
 
             .background-grid {
-                grid-template-columns: repeat(5, 1fr);
+                grid-template-columns: repeat(5, minmax(0, 1fr));
             }
         }
 
@@ -1300,7 +1359,14 @@
                                     <span class="date-tile-month" x-text="day.month"></span>
                                     <span class="date-tile-day" x-text="day.date"></span>
                                 </div>
-                                <span class="section-header" style="margin: 0;" x-text="day.name"></span>
+                                <!-- Invisible copies of all three names make each heading as wide as the
+                                     widest, so the date tiles line up while each heading stays centered -->
+                                <span class="section-header day-name" style="margin: 0;">
+                                    <template x-for="name in day.allNames" :key="name">
+                                        <span class="day-name-sizer" aria-hidden="true" x-text="name"></span>
+                                    </template>
+                                    <span x-text="day.name"></span>
+                                </span>
                             </div>
                             <template x-for="(event, i) in day.events" :key="day.key + i">
                                 <div class="event-card">
@@ -1413,6 +1479,15 @@
         @pointerdown="backdropPress = $event.target === $el" @click.self="backdropPress && (showSettingsModal = false)"
         :class="{ 'keyboard-open': kbVisible }">
         <div class="modal-content settings-modal">
+            <div class="settings-header">
+                <h2>Settings</h2>
+                <button class="settings-close" @click="showSettingsModal = false" aria-label="Close settings">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor"
+                            stroke-width="2.4" stroke-linecap="round" /></svg>
+                </button>
+            </div>
+            <!-- Only this part scrolls, so the close button and Done are always in reach -->
+            <div class="settings-body">
             <div class="settings-section">
                 <h3>Household</h3>
                 <h4 class="settings-label">Weather location</h4>
@@ -1493,6 +1568,7 @@
                     <p class="settings-note">An alternative to iCal links that shows every calendar in a Google
                         account at once. See google_calendar_data.gs in the project.</p>
                 </div>
+            </div>
             </div>
             <div class="modal-buttons">
                 <button class="btn-primary" @click="showSettingsModal = false">Done</button>
@@ -2360,6 +2436,9 @@
                 calendarDays() {
                     this.nowTick; // re-run each minute
                     const now = new Date();
+                    const dayName = offset => ['Today', 'Tomorrow'][offset] || new Date(now.getFullYear(), now.getMonth(),
+                        now.getDate() + offset).toLocaleDateString('en-US', { weekday: 'long' });
+                    const allNames = [0, 1, 2].map(dayName);
                     return ['today', 'tomorrow', 'dayAfterTomorrow'].map((key, offset) => {
                         const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
                         const all = this.calendar[key] || [];
@@ -2368,7 +2447,8 @@
                             key,
                             month: d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase(),
                             date: d.getDate(),
-                            name: ['Today', 'Tomorrow'][offset] || d.toLocaleDateString('en-US', { weekday: 'long' }),
+                            name: allNames[offset],
+                            allNames,
                             events,
                             emptyText: offset === 0 ? (all.length ? 'No more events today' : 'No events today')
                                 : offset === 1 ? 'No events tomorrow' : 'No events'
