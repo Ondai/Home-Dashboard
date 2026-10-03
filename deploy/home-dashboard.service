@@ -2,7 +2,8 @@
 Description=Home Dashboard server (http://localhost:8000)
 
 [Service]
-ExecStart=/usr/bin/python3 @REPO@/server.py
+# .venv has the calendar packages (deploy/install.sh creates it)
+ExecStart=@REPO@/.venv/bin/python @REPO@/server.py
 WorkingDirectory=@REPO@
 Environment=PYTHONUNBUFFERED=1
 # Also how "Update Dashboard" picks up a changed server.py: it exits and comes back on the new code.

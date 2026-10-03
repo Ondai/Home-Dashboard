@@ -1,3 +1,6 @@
 # Saved countdowns and settings; live only on the Pi
 data/
 __pycache__/
+
+# Python environment for the calendar libraries (deploy/install.sh creates it)
+.venv/

@@ -1,0 +1,3 @@
+# Installed into .venv by deploy/install.sh. Only the calendar's iCal links need these.
+icalendar==7.3.0
+recurring-ical-events==3.8.2

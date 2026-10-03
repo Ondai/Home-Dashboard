@@ -23,11 +23,15 @@ for _ in $(seq 1 60); do
     sleep 1
 done
 
+# Bookworm images from before late 2024 only have chromium-browser
+CHROMIUM=$(command -v chromium || command -v chromium-browser)
+# Fresh profiles default to X11, which fails under Wayland desktops (Wayfire, labwc); X11 desktops need x11
+if [ -n "${WAYLAND_DISPLAY:-}" ]; then PLATFORM=wayland; else PLATFORM=x11; fi
+
 while [ ! -e "$PAUSE_FILE" ]; do
-    # --ozone-platform=wayland: fresh profiles default to X11, which fails under Wayfire.
     # A dedicated profile keeps the kiosk separate from normal browsing on the Pi.
-    chromium \
-        --ozone-platform=wayland \
+    "$CHROMIUM" \
+        --ozone-platform="$PLATFORM" \
         --kiosk \
         --user-data-dir="$PROFILE_DIR" \
         --no-first-run \

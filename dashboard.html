@@ -15,6 +15,7 @@
 
     <!-- Bundled and pinned (see assets/vendor/README.md), so the page works offline and can't change under us -->
     <link rel="preload" href="assets/vendor/inter-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+    <script defer src="assets/vendor/qrcode-generator-2.0.4.js"></script>
     <script defer src="assets/vendor/alpinejs-3.17.4.min.js"></script>
 
     <style>
@@ -887,6 +888,105 @@
             color: var(--text-secondary-color);
         }
 
+        .settings-label {
+            margin: 14px 0 6px;
+            font-size: 0.85em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary-color);
+        }
+
+        .settings-current {
+            margin: 0 0 8px;
+        }
+
+        .settings-row {
+            display: flex;
+            gap: 8px;
+            margin: 8px 0;
+        }
+
+        .settings-row input {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .settings-modal input[type="text"] {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .calendar-entry {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 6px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: #2c2c2e;
+        }
+
+        .calendar-remove {
+            border: none;
+            background: none;
+            color: var(--text-secondary-color);
+            font-size: 1.1em;
+            cursor: pointer;
+        }
+
+        .settings-error {
+            margin: 8px 0 0;
+            color: var(--delete-color);
+        }
+
+        /* Room for the on-screen keyboard while typing in settings on the wall */
+        .modal-overlay.keyboard-open .settings-modal {
+            max-height: calc(100vh - 580px);
+        }
+
+        /* First run: how to reach the phone remote */
+        .setup-card {
+            display: flex;
+            align-items: center;
+            gap: 28px;
+            margin-top: 15px;
+            padding: 24px 28px;
+        }
+
+        .setup-qr {
+            flex-shrink: 0;
+            width: 220px;
+            height: 220px;
+            padding: 8px;
+            border-radius: 12px;
+            background: white;
+        }
+
+        .setup-qr svg {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .setup-text h2 {
+            margin: 0 0 12px;
+            font-size: 1.7em;
+        }
+
+        .setup-text p {
+            margin: 0 0 8px;
+            font-size: 1.2em;
+            color: var(--text-secondary-color);
+        }
+
+        .setup-text .setup-url {
+            font-size: 1.5em;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
         /* Phone remote: just a title and the countdowns */
         .remote-header {
             display: flex;
@@ -1128,10 +1228,30 @@
                 </template>
                 <div class="weather-card weather-unavailable" x-show="!weather && weatherFailed" x-cloak>
                     Weather is unavailable right now. Retrying…</div>
+                <div class="weather-card weather-unavailable" x-show="settingsLoaded && !settings.location && !needsSetup"
+                    x-cloak>Add your ZIP code in Settings (the gear) to see the weather.</div>
+                <!-- A brand-new wall: point people at the phone remote to finish setting up -->
+                <div class="weather-card setup-card" x-show="needsSetup" x-cloak>
+                    <div class="setup-qr" x-html="setupQr"></div>
+                    <div class="setup-text">
+                        <h2>Welcome! Let's set up your dashboard.</h2>
+                        <p>On your phone (on the same Wi-Fi), scan the code or open:</p>
+                        <p class="setup-url" x-text="setupUrls[0] || ''"></p>
+                        <p class="setup-alt" x-show="setupUrls[1]">or <span x-text="setupUrls[1]"></span></p>
+                        <p>Then tap the gear to add your ZIP code and calendars.</p>
+                    </div>
+                </div>
             </div>
             <div class="events-row">
                 <div class="half-column" style="gap: 12px;" x-show="!isRemote">
-                    <div class="cal-status" x-show="calError" x-cloak x-text="calendarStatusText()"></div>
+                    <div class="cal-status" x-show="calendarStatusText()" x-cloak x-text="calendarStatusText()"></div>
+                    <div class="heading-row" x-show="calLoaded && calendar.configured === false" x-cloak
+                        style="margin-bottom: 15px;">
+                        <span class="section-header" style="margin: 0;">Calendar</span>
+                    </div>
+                    <div class="event-card" x-show="calLoaded && calendar.configured === false" x-cloak>
+                        <span class="no-events">No calendars yet. Add one in Settings (the gear).</span>
+                    </div>
                     <!-- First sync can take a few seconds; show that it's coming rather than an empty column -->
                     <div x-show="calLoading" class="cal-loading">
                         <div class="heading-row" style="margin-bottom: 15px;">
@@ -1147,7 +1267,7 @@
                             </template>
                         </div>
                     </div>
-                    <div class="heading-row" x-show="!calLoading" style="margin-bottom: 15px;">
+                    <div class="heading-row" x-show="!calLoading && calendar.configured !== false" style="margin-bottom: 15px;">
                         <div class="gcal-logo-wrapper">
                             <img src="assets/gcal.png" class="gcal-logo-img">
                             <span class="gcal-date-text" x-text="calendar.dates?.today"
@@ -1155,7 +1275,7 @@
                         </div>
                         <span class="section-header" style="margin: 0;">Today</span>
                     </div>
-                    <div x-show="!calLoading" class="event-list-container" style="gap: 12px;">
+                    <div x-show="!calLoading && calendar.configured !== false" class="event-list-container" style="gap: 12px;">
                         <template x-for="(event, i) in calendar.today" :key="'t'+i">
                             <div class="event-card">
                                 <span class="event-title" x-text="event.title"></span>
@@ -1167,7 +1287,7 @@
                             <span class="no-events" style="width:100%; text-align:center;">No events today</span>
                         </div>
                     </div>
-                    <div class="heading-row" x-show="!calLoading">
+                    <div class="heading-row" x-show="!calLoading && calendar.configured !== false">
                         <div class="gcal-logo-wrapper">
                             <img src="assets/gcal.png" class="gcal-logo-img">
                             <span class="gcal-date-text" x-text="calendar.dates?.tomorrow"
@@ -1175,7 +1295,7 @@
                         </div>
                         <span class="section-header" style="margin: 0;">Tomorrow</span>
                     </div>
-                    <div x-show="!calLoading" class="event-list-container" style="gap: 12px;">
+                    <div x-show="!calLoading && calendar.configured !== false" class="event-list-container" style="gap: 12px;">
                         <template x-for="(event, i) in calendar.tomorrow" :key="'tm'+i">
                             <div class="event-card">
                                 <span class="event-title" x-text="event.title"></span>
@@ -1187,7 +1307,7 @@
                             <span class="no-events" style="width:100%; text-align:center;">No events tomorrow</span>
                         </div>
                     </div>
-                    <div class="heading-row" x-show="!calLoading">
+                    <div class="heading-row" x-show="!calLoading && calendar.configured !== false">
                         <div class="gcal-logo-wrapper">
                             <img src="assets/gcal.png" class="gcal-logo-img">
                             <span class="gcal-date-text" x-text="calendar.dates?.dayAfterTomorrow"
@@ -1196,7 +1316,7 @@
                         <span class="section-header" style="margin: 0;"
                             x-text="calendar.dates?.dayAfterTomorrowName"></span>
                     </div>
-                    <div x-show="!calLoading" class="event-list-container" style="gap: 12px;">
+                    <div x-show="!calLoading && calendar.configured !== false" class="event-list-container" style="gap: 12px;">
                         <template x-for="(event, i) in calendar.dayAfterTomorrow" :key="'dat'+i">
                             <div class="event-card">
                                 <span class="event-title" x-text="event.title"></span>
@@ -1299,8 +1419,47 @@
             </template>
         </div>
     </template>
-    <div class="modal-overlay" x-show="showSettingsModal" x-cloak @click.self="showSettingsModal = false">
+    <div class="modal-overlay" x-show="showSettingsModal" x-cloak @click.self="showSettingsModal = false"
+        :class="{ 'keyboard-open': kbVisible }">
         <div class="modal-content settings-modal">
+            <div class="settings-section">
+                <h3>Household</h3>
+                <h4 class="settings-label">Weather location</h4>
+                <p class="settings-current"
+                    x-text="settings.location ? settings.location.name + (settings.location.zip ? ` (${settings.location.zip})` : '') : 'Not set'">
+                </p>
+                <div class="settings-row">
+                    <input type="text" x-model="zipInput" placeholder="ZIP code" maxlength="5" autocomplete="off" data-kb-plain
+                        :inputmode="isKiosk ? 'none' : 'numeric'" @focus="isKiosk && kbOpen($event.target)" @blur="kbClose()" @keydown.enter="saveLocation()">
+                    <button class="btn-secondary" @click="saveLocation()" :disabled="settingsBusy === 'location'"
+                        x-text="settingsBusy === 'location' ? 'Looking up…' : 'Set'"></button>
+                </div>
+
+                <h4 class="settings-label">Calendars</h4>
+                <template x-for="calendar in settings.calendars" :key="calendar.id">
+                    <div class="calendar-entry">
+                        <span x-text="calendarName(calendar)"></span>
+                        <button class="calendar-remove" @click="removeCalendar(calendar)"
+                            :aria-label="'Remove ' + calendarName(calendar)">✕</button>
+                    </div>
+                </template>
+                <p class="settings-current" x-show="!settings.calendars.length && !settings.appsScriptUrl">None yet</p>
+                <p class="settings-current" x-show="settings.appsScriptUrl">Plus events from the Apps Script link
+                    (Advanced settings).</p>
+                <input type="text" x-model="newCalendarUrl" placeholder="Paste a calendar's secret iCal address"
+                    autocomplete="off" data-kb-plain :inputmode="isKiosk ? 'none' : 'url'" @focus="isKiosk && kbOpen($event.target)" @blur="kbClose()">
+                <div class="settings-row">
+                    <input type="text" x-model="newCalendarLabel" placeholder="Name (optional)" maxlength="40"
+                        autocomplete="off" :inputmode="isKiosk ? 'none' : 'text'" @focus="isKiosk && kbOpen($event.target)" @blur="kbClose()"
+                        @keydown.enter="addCalendar()">
+                    <button class="btn-secondary" @click="addCalendar()" :disabled="settingsBusy === 'calendar'"
+                        x-text="settingsBusy === 'calendar' ? 'Checking…' : 'Add'"></button>
+                </div>
+                <p class="settings-note">Google Calendar, on a computer: Settings → pick the calendar under "Settings
+                    for my calendars" → Integrate calendar → copy "Secret address in iCal format". Outlook and
+                    iCloud calendars work too, with their shared .ics links.</p>
+                <p class="settings-error" x-show="settingsError" x-text="settingsError"></p>
+            </div>
             <div class="settings-section">
                 <h3>Background</h3>
                 <template x-for="group in backgroundGroups" :key="group.name">
@@ -1331,6 +1490,17 @@
                     <button class="btn-secondary settings-button" @click="showDashboard()">Show Dashboard</button>
                     <p class="settings-note">Exit to Desktop swaps the dashboard for the Raspberry Pi desktop; Show
                         Dashboard brings it back.</p>
+                    <h4 class="settings-label">Google Apps Script link</h4>
+                    <p class="settings-current"
+                        x-text="settings.appsScriptUrl ? 'In use, alongside any calendars above' : 'Not used'"></p>
+                    <div class="settings-row">
+                        <input type="text" x-model="appsScriptInput" placeholder="Apps Script web app link, or blank to remove"
+                            autocomplete="off" data-kb-plain :inputmode="isKiosk ? 'none' : 'url'" @focus="isKiosk && kbOpen($event.target)" @blur="kbClose()">
+                        <button class="btn-secondary" @click="saveAppsScript()" :disabled="settingsBusy === 'appsScript'"
+                            x-text="settingsBusy === 'appsScript' ? 'Checking…' : 'Save'"></button>
+                    </div>
+                    <p class="settings-note">An alternative to iCal links that shows every calendar in a Google
+                        account at once. See google_calendar_data.gs in the project.</p>
                 </div>
             </div>
             <div class="modal-buttons">
@@ -1351,10 +1521,10 @@
             // 8 PM, 12 AM, ...
             const hourLabel = d => `${d.getHours() % 12 || 12} ${d.getHours() < 12 ? 'AM' : 'PM'}`;
 
-            // Weather location; the NWS forecast URLs for it are looked up once and kept
-            const WEATHER_LAT = 40.7128;
-            const WEATHER_LON = -74.0060;
+            // NWS forecast URLs for the household's location: looked up once, again if the location changes
             let weatherUrls = null;
+
+            const NO_SETTINGS = { location: null, calendars: [], appsScriptUrl: null };
 
             // Whole calendar days from today to a YYYY-MM-DD date (negative if past); DST-safe
             const daysUntil = (dateStr) => {
@@ -1432,7 +1602,16 @@
                 calError: false,      // the most recent load failed
                 calUpdatedAt: null,
                 calRefreshTimer: null,
-                calendarScriptUrl: 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec',
+                settings: NO_SETTINGS,    // household settings (location, calendars), saved on the server
+                settingsLoaded: false,
+                zipInput: '',
+                newCalendarUrl: '',
+                newCalendarLabel: '',
+                appsScriptInput: '',
+                settingsBusy: '',         // which household setting is being saved, e.g. 'location'
+                settingsError: '',
+                setupUrls: [],            // how to reach this Pi from a phone, for the first-run screen
+                setupQr: '',
                 lastStateJson: null,
                 selectedBackground: 'var(--bg-color)',
                 selectedBackgroundType: 'color',
@@ -1450,8 +1629,15 @@
                         day: 'numeric'
                     });
 
-                    // Then follow changes made on any other screen as they happen
-                    this.loadData().then(() => this.watchState());
+                    // Then follow changes made on any other screen as they happen. Weather and calendar
+                    // wait for the first load, since they need the household's settings.
+                    this.loadData().then(() => {
+                        this.watchState();
+                        if (this.isRemote) return;
+                        this.getWeather(); // both schedule their own refreshes
+                        this.getCalendarEvents();
+                        this.loadSetupInfo();
+                    });
                     document.addEventListener('visibilitychange', () => {
                         if (!document.hidden) this.refreshState();
                     });
@@ -1462,10 +1648,6 @@
 
                     this.mainTick();
                     setInterval(() => this.mainTick(), 1000);
-
-                    this.getWeather(); // schedules its own refreshes
-
-                    this.getCalendarEvents();
 
                     if (this.isKiosk) {
                         document.documentElement.classList.add('kiosk');
@@ -1538,7 +1720,7 @@
 
                 applyState(state) {
                     if (state.version !== undefined) this.stateVersion = state.version;
-                    const json = JSON.stringify({ events: state.events, background: state.background });
+                    const json = JSON.stringify({ events: state.events, background: state.background, settings: state.settings });
                     if (json === this.lastStateJson) return; // nothing new; skip re-rendering
                     this.lastStateJson = json;
                     localStorage.setItem('dashboardState', json);
@@ -1552,6 +1734,83 @@
                         this.selectedBackground = bg.value;
                         this.selectedBackgroundType = bg.type;
                         this.applyBackground(bg.value, bg.type);
+                    }
+
+                    this.applySettings(state.settings || NO_SETTINGS);
+                },
+
+                // A location or calendar change made on any screen refreshes the wall's weather/calendar
+                applySettings(settings) {
+                    const before = this.settings;
+                    const wasLoaded = this.settingsLoaded;
+                    this.settings = settings;
+                    this.settingsLoaded = true;
+                    if (!wasLoaded || this.isRemote) return; // first load: init() fetches them
+                    if (JSON.stringify(before.location) !== JSON.stringify(settings.location)) {
+                        weatherUrls = null;
+                        this.getWeather();
+                    }
+                    if (JSON.stringify([before.calendars, before.appsScriptUrl]) !==
+                        JSON.stringify([settings.calendars, settings.appsScriptUrl])) {
+                        this.getCalendarEvents();
+                    }
+                },
+
+                // --- Household settings (location, calendars) ---
+
+                get needsSetup() {
+                    const s = this.settings;
+                    return this.settingsLoaded && !s.location && !s.calendars.length && !s.appsScriptUrl;
+                },
+
+                async saveSetting(name, method, path, body, after = () => {}) {
+                    this.settingsBusy = name;
+                    this.settingsError = '';
+                    try {
+                        await this.api(method, path, body);
+                        after();
+                    } catch (e) {
+                        this.settingsError = e.message;
+                    } finally {
+                        this.settingsBusy = '';
+                    }
+                },
+
+                saveLocation() {
+                    this.saveSetting('location', 'PUT', '/api/settings/location', { zip: this.zipInput },
+                        () => { this.zipInput = ''; });
+                },
+
+                addCalendar() {
+                    this.saveSetting('calendar', 'POST', '/api/settings/calendars',
+                        { url: this.newCalendarUrl, label: this.newCalendarLabel },
+                        () => { this.newCalendarUrl = ''; this.newCalendarLabel = ''; });
+                },
+
+                removeCalendar(calendar) {
+                    if (!window.confirm(`Remove "${this.calendarName(calendar)}" from the dashboard?`)) return;
+                    this.saveSetting('calendar', 'DELETE', '/api/settings/calendars/' + calendar.id);
+                },
+
+                saveAppsScript() {
+                    this.saveSetting('appsScript', 'PUT', '/api/settings/apps-script', { url: this.appsScriptInput },
+                        () => { this.appsScriptInput = ''; });
+                },
+
+                calendarName(calendar) {
+                    return calendar.label || 'Calendar ' + (this.settings.calendars.indexOf(calendar) + 1);
+                },
+
+                // The QR code and address shown on a wall that hasn't been set up yet
+                async loadSetupInfo() {
+                    try {
+                        this.setupUrls = (await (await fetch('/api/info')).json()).urls;
+                        const qr = qrcode(0, 'M');
+                        qr.addData(this.setupUrls[0]);
+                        qr.make();
+                        this.setupQr = qr.createSvgTag({ cellSize: 6, margin: 2, scalable: true });
+                    } catch (e) {
+                        console.error('Could not build the setup QR code:', e);
                     }
                 },
 
@@ -1788,6 +2047,7 @@
 
                 kbOpen(el) {
                     kbTarget = el;
+                    this.$nextTick(() => el.scrollIntoView({ block: 'nearest' }));
                     this.kbPage = 'abc';
                     this.kbAutoShift();
                     this.kbVisible = true;
@@ -1801,6 +2061,10 @@
 
                 // Capitalize the first letter of the title and of each word, like the existing titles
                 kbAutoShift() {
+                    if (kbTarget && 'kbPlain' in kbTarget.dataset) { // links and ZIP codes: no capitals
+                        this.kbShift = false;
+                        return;
+                    }
                     const before = kbTarget ? kbTarget.value.slice(0, kbTarget.selectionStart) : '';
                     this.kbShift = before === '' || before.endsWith(' ');
                 },
@@ -1954,7 +2218,13 @@
                         return res.json();
                     });
                     // The forecast URLs for a location never change, so look them up once
-                    const urls = weatherUrls || getJson(`https://api.weather.gov/points/${WEATHER_LAT},${WEATHER_LON}`)
+                    const location = this.settings.location;
+                    if (!location) { // the card asks for a location instead
+                        this.weather = null;
+                        this.weatherFailed = false;
+                        return;
+                    }
+                    const urls = weatherUrls || getJson(`https://api.weather.gov/points/${location.lat},${location.lon}`)
                         .then(point => (weatherUrls = { daily: point.properties.forecast, hourly: point.properties.forecastHourly }));
 
                     Promise.resolve(urls)
@@ -2057,53 +2327,36 @@
                     return isDaytime ? '🌤️' : '🌙';
                 },
 
-                // Loads events via JSONP, then schedules the next refresh: every 15 minutes, or in
-                // 1 minute after a failure. Failures keep the last good events on screen.
-                getCalendarEvents() {
+                // The server gathers the household's calendars; refreshes every 15 minutes, or 1 minute
+                // after a failure. Failures keep the last good events on screen.
+                async getCalendarEvents() {
                     clearTimeout(this.calRefreshTimer); // keep a single refresh chain, even when called at midnight
-                    if (!this.calendarScriptUrl || this.calendarScriptUrl.includes('PASTE')) {
-                        console.error('Google Apps Script URL is missing.');
-                        this.calLoading = false;
-                        return;
-                    }
-
-                    // Unique per request, so a slow reply to an earlier request can't land on a newer one
-                    const callbackName = 'handleCalendarData_' + Date.now();
-                    const script = document.createElement('script');
-                    const failed = (reason) => {
-                        clearTimeout(timeout);
-                        script.remove();
-                        // If the reply still arrives later, swallow it instead of throwing ReferenceError
-                        window[callbackName] = () => delete window[callbackName];
-                        setTimeout(() => delete window[callbackName], 5 * 60 * 1000);
-                        console.error('Google Calendar request failed:', reason);
-                        this.calError = true;
-                        this.calLoading = false;
-                        this.calRefreshTimer = setTimeout(() => this.getCalendarEvents(), 60 * 1000);
-                    };
-                    const timeout = setTimeout(() => failed('timed out'), 15000);
-
-                    window[callbackName] = (data) => {
-                        clearTimeout(timeout);
-                        delete window[callbackName];
-                        script.remove();
+                    try {
+                        const res = await fetch('/api/calendar');
+                        const data = await res.json();
+                        if (!res.ok) throw new Error((data.errors || []).join('; ') || 'Server returned ' + res.status);
                         this.calendar = data;
                         this.calLoaded = true;
                         this.calError = false;
-                        this.calLoading = false;
                         this.calUpdatedAt = new Date();
                         this.calRefreshTimer = setTimeout(() => this.getCalendarEvents(), 15 * 60 * 1000);
-                    };
-
-                    script.onerror = () => failed('network error');
-                    script.src = this.calendarScriptUrl + '?callback=' + callbackName;
-                    document.body.appendChild(script);
+                    } catch (e) {
+                        console.error('Calendar update failed:', e);
+                        this.calError = true;
+                        this.calRefreshTimer = setTimeout(() => this.getCalendarEvents(), 60 * 1000);
+                    } finally {
+                        this.calLoading = false;
+                    }
                 },
 
                 calendarStatusText() {
-                    if (!this.calLoaded) return "Couldn't reach Google Calendar. Retrying…";
-                    const time = this.calUpdatedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-                    return `Calendar couldn't refresh. Showing events as of ${time}.`;
+                    if (this.calError && !this.calLoaded) return "Couldn't reach your calendars. Retrying…";
+                    if (this.calError) {
+                        const time = this.calUpdatedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                        return `Calendar couldn't refresh. Showing events as of ${time}.`;
+                    }
+                    const failed = (this.calendar.errors || []).length;
+                    return failed ? `Couldn't read ${failed === 1 ? 'one calendar' : failed + ' calendars'}. Check Settings.` : '';
                 },
 
                 backgroundGroups: [
