@@ -121,4 +121,5 @@ like "(day 2/3)".
   every calendar in an account at once); its web app link goes in Advanced settings. Copies of the
   script from before October 2026 still work, but without hiding finished events or "(day 2/3)";
   paste in the current version and redeploy it to get those.
-- `tools/make_backgrounds.py` generates the seasonal, holiday and abstract backgrounds.
+- `tools/make_backgrounds.py` generates the seasonal, holiday and abstract backgrounds. Photos in
+  `assets/backgrounds/photos` are from Unsplash; their photographers are listed in `CREDITS.md` there.

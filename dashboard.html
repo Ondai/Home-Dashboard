@@ -1531,6 +1531,8 @@
             const photo = (id, name, photoId) => ({ id, name, type: 'image',
                 value: `https://images.unsplash.com/${photoId}?w=1920&q=80`,
                 thumbnail: { backgroundImage: `url(https://images.unsplash.com/${photoId}?w=300&q=60)` } });
+            const bundled = (id, name) => ({ id, name, type: 'image', value: `assets/backgrounds/photos/${id}.jpg`,
+                thumbnail: { backgroundImage: `url(assets/backgrounds/photos/thumbs/${id}.jpg)` } });
             const gradient = (id, name, value) => ({ id, name, type: 'gradient', value, thumbnail: { backgroundImage: value } });
             const color = (id, name, value) => ({ id, name, type: 'color', value, thumbnail: { backgroundColor: value } });
 
@@ -1896,7 +1898,10 @@
                         document.body.style.backgroundImage = value.image;
                         document.body.style.backgroundSize = value.size;
                     } else if (type === 'image') {
-                        document.body.style.backgroundImage = `url(${value})`;
+                        // Photos get a soft dark layer, heavier at the top and bottom, so the clock and
+                        // headings stay readable over bright skies. The SVG art is dark enough already.
+                        const scrim = 'linear-gradient(rgba(0,0,0,.35), rgba(0,0,0,.1) 45%, rgba(0,0,0,.3))';
+                        document.body.style.backgroundImage = value.endsWith('.svg') ? `url(${value})` : `${scrim}, url(${value})`;
                     } else {
                         document.body.style.backgroundColor = 'var(--bg-color)';
                     }
@@ -2403,17 +2408,31 @@
                     {
                         name: 'Photos',
                         options: [
-                            photo('hills', 'Hills', 'photo-1532274402911-5a369e4c4bb5'),
+                            photo('meadow', 'Meadow', 'photo-1532274402911-5a369e4c4bb5'),
                             photo('mountains', 'Mountains', 'photo-1519681393784-d120267933ba'),
                             photo('desert', 'Desert', 'photo-1473580044384-7ba9967e16a0'),
                             photo('forest', 'Forest', 'photo-1448375240586-882707db888b'),
                             photo('northern-lights', 'Northern Lights', 'photo-1531366936337-7c912a4589a7'),
-                            photo('bridge', 'Bridge', 'photo-1449824913935-59a10b8d2000'),
-                            photo('abstract-3', 'Swirl', 'photo-1528459801416-a9e53bbf4e17'),
+                            photo('city', 'City', 'photo-1449824913935-59a10b8d2000'),
+                            photo('watercolor', 'Watercolor', 'photo-1528459801416-a9e53bbf4e17'),
                             photo('space-nasa', 'Space', 'photo-1462331940025-496dfbfc7564'),
                             photo('christmas-tree', 'Christmas Tree', 'photo-1543258103-a62bdc069871'),
                             photo('cozy-cabin', 'Cozy Cabin', 'photo-1510798831971-661eb04b3739'),
-                            photo('christmas-lights', 'Holiday Lights', 'photo-1512418490979-92798cec1380')
+                            photo('christmas-lights', 'Holiday Lights', 'photo-1512418490979-92798cec1380'),
+                            // Bundled with the dashboard (works offline); credits in assets/backgrounds/photos
+                            bundled('summit', 'Summit'),
+                            bundled('alpine-lake', 'Alpine Lake'),
+                            bundled('misty-forest', 'Misty Forest'),
+                            bundled('dusk-forest', 'Dusk Forest'),
+                            bundled('highlands', 'Highlands'),
+                            bundled('sunset-field', 'Sunset Field'),
+                            bundled('tuscany', 'Tuscany'),
+                            bundled('dunes', 'Dunes'),
+                            bundled('old-pier', 'Old Pier'),
+                            bundled('canal', 'Canal'),
+                            bundled('evening-lights', 'Evening Lights'),
+                            bundled('london', 'London'),
+                            bundled('brooklyn-bridge', 'Brooklyn Bridge')
                         ]
                     },
                     {
