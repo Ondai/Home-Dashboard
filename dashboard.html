@@ -33,6 +33,8 @@
             /* Headings sit directly on the background, so the text carries its own contrast:
                a tight shadow for edges plus a wide soft one for light backgrounds */
             --heading-shadow: 0 1px 3px rgba(0, 0, 0, 0.6), 0 2px 16px rgba(0, 0, 0, 0.45);
+            /* Calendar icons, the loading spinner and the add button share one size so headings line up */
+            --heading-icon-size: 50px;
         }
 
         body {
@@ -292,10 +294,11 @@
         /* Today / Tomorrow / Coming Up rows: same box as an event card, so both columns line up,
            but no fill or blur, so the background runs uninterrupted behind them */
         .heading-row {
+            position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 45px;
+            min-height: var(--heading-icon-size);
             padding: 12px 16px;
             border: 1px solid transparent;
         }
@@ -308,8 +311,8 @@
         }
 
         .cal-spinner {
-            width: 45px;
-            height: 45px;
+            width: var(--heading-icon-size);
+            height: var(--heading-icon-size);
             margin-right: 15px;
             flex-shrink: 0;
             display: flex;
@@ -372,27 +375,34 @@
 
         .gcal-logo-wrapper {
             position: relative;
-            width: 45px;
-            /* Reduced to match event row height */
-            height: 45px;
-            /* Reduced to match event row height */
+            width: var(--heading-icon-size);
+            height: var(--heading-icon-size);
+            margin-right: 15px;
             flex-shrink: 0;
-            /* Prevents squishing */
         }
 
+        /* Centered on the icon's white square, which sits up and left of the image's middle
+           (it spans 32.0%-64.5% across and 31.9%-64.5% down in gcal.png) */
         .gcal-date-text {
             position: absolute;
-            top: 52%;
-            left: 50%;
+            top: 48.2%;
+            left: 48.25%;
             transform: translate(-50%, -50%);
             font-family: 'Inter', sans-serif;
             font-weight: 700;
-            font-size: 0.85em;
-            /* Smaller font to fit the smaller icon */
+            font-size: 0.94em;
             color: #4285F4;
             line-height: 1;
-            letter-spacing: -1px;
+            letter-spacing: -0.5px;
             z-index: 2;
+        }
+
+        /* "28" at full size is wider than the white square, and blue digits vanish on the blue frame */
+        .gcal-date-text.two-digit {
+            font-size: 0.82em;
+            letter-spacing: -1px;
+            /* letter-spacing also trims after the last digit, which nudges the pair right */
+            transform: translate(calc(-50% - 0.6px), -50%);
         }
 
         .gcal-logo-img {
@@ -481,25 +491,31 @@
             width: 100%;
         }
 
-        /* Sits after "Coming Up", mirroring the 45px calendar icon before "Today" so the headers line up */
+        /* At the right end of the "Coming Up" row, which stays centered over its column. Same size as the
+           calendar icons beside Today/Tomorrow, so both columns' headings are the same height */
         .add-btn {
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
             background-color: rgba(44, 44, 46, 0.8);
             border-radius: 50%;
-            width: 45px;
-            height: 45px;
-            flex-shrink: 0;
+            width: var(--heading-icon-size);
+            height: var(--heading-icon-size);
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 0;
-            font-family: inherit;
-            font-size: 30px;
-            line-height: 1;
             color: var(--text-color);
-            margin-left: 15px;
             cursor: pointer;
             border: 1px solid rgba(255, 255, 255, 0.15);
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Drawn rather than a "+" character, which never sits dead center in its line box */
+        .add-btn svg {
+            width: 46%;
+            height: 46%;
         }
 
         .grid-container {
@@ -1152,9 +1168,10 @@
                         </div>
                     </div>
                     <div class="heading-row" x-show="!calLoading" style="margin-bottom: 15px;">
-                        <div class="gcal-logo-wrapper" style="width: 45px; height: 45px; margin-right: 15px;">
+                        <div class="gcal-logo-wrapper">
                             <img src="assets/gcal.png" class="gcal-logo-img">
-                            <span class="gcal-date-text" x-text="calendar.dates?.today"></span>
+                            <span class="gcal-date-text" x-text="calendar.dates?.today"
+                                :class="{ 'two-digit': calendar.dates?.today > 9 }"></span>
                         </div>
                         <span class="section-header" style="margin: 0;">Today</span>
                     </div>
@@ -1171,9 +1188,10 @@
                         </div>
                     </div>
                     <div class="heading-row" x-show="!calLoading">
-                        <div class="gcal-logo-wrapper" style="width: 45px; height: 45px; margin-right: 15px;">
+                        <div class="gcal-logo-wrapper">
                             <img src="assets/gcal.png" class="gcal-logo-img">
-                            <span class="gcal-date-text" x-text="calendar.dates?.tomorrow"></span>
+                            <span class="gcal-date-text" x-text="calendar.dates?.tomorrow"
+                                :class="{ 'two-digit': calendar.dates?.tomorrow > 9 }"></span>
                         </div>
                         <span class="section-header" style="margin: 0;">Tomorrow</span>
                     </div>
@@ -1190,9 +1208,10 @@
                         </div>
                     </div>
                     <div class="heading-row" x-show="!calLoading">
-                        <div class="gcal-logo-wrapper" style="width: 45px; height: 45px; margin-right: 15px;">
+                        <div class="gcal-logo-wrapper">
                             <img src="assets/gcal.png" class="gcal-logo-img">
-                            <span class="gcal-date-text" x-text="calendar.dates?.dayAfterTomorrow"></span>
+                            <span class="gcal-date-text" x-text="calendar.dates?.dayAfterTomorrow"
+                                :class="{ 'two-digit': calendar.dates?.dayAfterTomorrow > 9 }"></span>
                         </div>
                         <span class="section-header" style="margin: 0;"
                             x-text="calendar.dates?.dayAfterTomorrowName"></span>
@@ -1214,7 +1233,10 @@
                 <div class="half-column">
                     <div class="heading-row" style="margin-bottom: 15px;">
                         <span class="section-header" style="margin: 0;">Coming Up</span>
-                        <button class="add-btn" @click="openAddModal()" aria-label="Add countdown">+</button>
+                        <button class="add-btn" @click="openAddModal()" aria-label="Add countdown">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M3 12h18" stroke="currentColor"
+                                    stroke-width="2.6" stroke-linecap="round" /></svg>
+                        </button>
                     </div>
                     <div class="grid-container" id="countdownGrid" style="gap: 12px;">
                         <template x-for="event in events" :key="event.id">
