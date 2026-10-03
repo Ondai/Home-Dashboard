@@ -88,45 +88,77 @@ def local(value):
     return value.astimezone() if isinstance(value, dt.datetime) else value
 
 
+def span_of(start, end):
+    """(first day, number of days) an event covers. All-day DTEND is the day after the last day."""
+    if isinstance(start, dt.datetime):
+        last = (end - dt.timedelta(microseconds=1)).date() if end > start else start.date()
+        first = start.date()
+    else:
+        first = start
+        last = end - dt.timedelta(days=1) if end > start else start
+    return first, (last - first).days + 1
+
+
+def place(found, title, start, end, days):
+    """Adds an event to each of the days it falls on, in found: {day index: [event, ...]}."""
+    first, length = span_of(start, end)
+    for i, (day_start, day_end) in enumerate(days):
+        if isinstance(start, dt.datetime):
+            overlaps = start < day_end and (end > day_start or start >= day_start)
+        else:
+            overlaps = first <= day_start.date() < first + dt.timedelta(days=length)
+        if not overlaps:
+            continue
+        label = time_label(start, end, day_start, day_end)
+        found[i].append({
+            # All-day and carried-over events first, then by start time
+            'sort': (1, start.strftime('%H:%M')) if label[0].isdigit() else (0, ''),
+            'title': title,
+            'time': label,
+            # When a timed event ends, so the wall can take it off Today afterwards
+            'end': end.isoformat() if isinstance(end, dt.datetime) else None,
+            'span': {'day': (day_start.date() - first).days + 1, 'of': length} if length > 1 else None,
+        })
+
+
 def ical_events(url, days):
-    """{day index: [(sort key, title, time label), ...]} for one iCal feed."""
+    """{day index: [event, ...]} for one iCal feed."""
     calendar = parse_ical(fetch(normalize_url(url)))
     found = {i: [] for i in range(len(days))}
-    window_start, window_end = days[0][0], days[-1][1]
-    for event in recurring_ical_events.of(calendar).between(window_start, window_end):
+    for event in recurring_ical_events.of(calendar).between(days[0][0], days[-1][1]):
         if str(event.get('STATUS', '')).upper() == 'CANCELLED':
             continue
         title = str(event.get('SUMMARY', '')).strip() or '(No title)'
         start = local(event.decoded('DTSTART'))
         end = local(event.decoded('DTEND')) if event.get('DTEND') else start
-        for i, (day_start, day_end) in enumerate(days):
-            if isinstance(start, dt.datetime):
-                overlaps = start < day_end and (end > day_start or start >= day_start)
-            else:  # all-day: DTEND is the day after the last day
-                overlaps = start <= day_start.date() < (end if end > start else start + dt.timedelta(days=1))
-            if overlaps:
-                label = time_label(start, end, day_start, day_end)
-                # All-day and carried-over events first, then by start time
-                sort_key = (1, start.strftime('%H:%M')) if label[0].isdigit() else (0, '')
-                found[i].append((sort_key, title, label))
+        place(found, title, start, end, days)
     return found
 
 
 def apps_script_events(url, days):
-    """Same shape as ical_events, from the original Google Apps Script web app."""
+    """Same shape as ical_events, from the Google Apps Script web app (google_calendar_data.gs)."""
     text = fetch(url).decode('utf-8', 'replace')
     try:
         data = json.loads(text[text.index('(') + 1:text.rindex(')')])  # it answers "callback({...})"
     except ValueError as e:
         raise CalendarError('the Apps Script link did not return calendar data') from e
-    found = {}
+    found = {i: [] for i in range(len(days))}
+    unique = {}
     for i, key in enumerate(DAY_KEYS[:len(days)]):
-        found[i] = []
         for event in data.get(key, []):
-            label = event.get('time', 'All Day')
-            sort_time = dt.datetime.strptime(label, '%I:%M %p').strftime('%H:%M') if label != 'All Day' else ''
             title = (event.get('title') or '').strip() or '(No title)'
-            found[i].append(((0, '') if label == 'All Day' else (1, sort_time), title, label))
+            if 'start' in event:  # current script: real start and end times, placed like iCal events
+                start, end = (dt.datetime.fromisoformat(event[k]).astimezone() for k in ('start', 'end'))
+                if event.get('allDay'):
+                    start, end = start.date(), end.date()
+                unique[(title, start, end)] = (title, start, end)
+            else:  # older script: only a time label per day; no end times or spans
+                label = event.get('time', 'All Day')
+                sort_time = dt.datetime.strptime(label, '%I:%M %p').strftime('%H:%M') if label != 'All Day' else ''
+                found[i].append({'sort': (0, '') if label == 'All Day' else (1, sort_time), 'title': title,
+                                 'time': label, 'end': None, 'span': None})
+    for title, start, end in unique.values():
+        place(found, title, start, end, days)
     return found
 
 
@@ -176,10 +208,10 @@ def build(settings):
     for i, key in enumerate(DAY_KEYS):
         seen, events = set(), []
         # The same event often appears in several shared calendars; show it once
-        for sort_key, title, label in sorted(merged[i]):
-            if (title, label) not in seen:
-                seen.add((title, label))
-                events.append({'title': title, 'time': label})
+        for event in sorted(merged[i], key=lambda e: (e['sort'], e['title'])):
+            if (event['title'], event['time']) not in seen:
+                seen.add((event['title'], event['time']))
+                events.append({k: event[k] for k in ('title', 'time', 'end', 'span')})
         result[key] = events
     return result
 

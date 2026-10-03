@@ -1,3 +1,4 @@
+import datetime as dt
 import hashlib
 import http.server
 import json
@@ -104,6 +105,33 @@ def delete_event(state, event_id):
 
 def set_background(state, body):
     state['background'] = clean_background(body)
+
+
+def is_over(event, today):
+    """A countdown whose day has passed. One added with a date before the day before it was added
+    ("We met", counting the days since) is a count-up and stays. Ids are creation times in ms."""
+    date = dt.date.fromisoformat(event['date'])
+    added = dt.date.fromtimestamp(event['id'] / 1000)
+    is_count_up = date < added - dt.timedelta(days=1)
+    return date < today and not is_count_up
+
+
+def remove_finished_countdowns():
+    """Runs every few minutes: deletes countdowns the day after their date."""
+    global state_version
+    while True:
+        with state_changed:
+            state = load_state()
+            today = dt.date.today()
+            keep = [e for e in state['events'] if not is_over(e, today)]
+            if len(keep) != len(state['events']):
+                gone = [e['title'] for e in state['events'] if is_over(e, today)]
+                state['events'] = keep
+                save_state(state)
+                state_version += 1
+                state_changed.notify_all()
+                print('Removed finished countdowns:', ', '.join(gone), flush=True)
+        time.sleep(5 * 60)
 
 
 # --- Household settings: where the weather is for, and which calendars to show ---
@@ -383,6 +411,7 @@ class DualStackServer(http.server.ThreadingHTTPServer):
 
 
 if __name__ == '__main__':
+    threading.Thread(target=remove_finished_countdowns, daemon=True).start()
     with DualStackServer(('::', PORT), DashboardRequestHandler) as httpd:
         print(f'Serving dashboard at http://localhost:{PORT}')
         httpd.serve_forever()

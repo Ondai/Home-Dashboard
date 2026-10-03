@@ -41,6 +41,7 @@
             --heading-shadow: 0 1px 3px rgba(0, 0, 0, 0.6), 0 2px 16px rgba(0, 0, 0, 0.45);
             /* Calendar icons, the loading spinner and the add button share one size so headings line up */
             --heading-icon-size: 50px;
+            --heading-row-height: 56px; /* the date tile's height; the rows in both columns match it */
         }
 
         body {
@@ -298,9 +299,36 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: var(--heading-icon-size);
+            min-height: var(--heading-row-height);
             padding: 12px 16px;
             border: 1px solid transparent;
+        }
+
+        .cal-day {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* Calendar event title with "(day 2/3)" after it; the title gives way first when space runs out */
+        .event-title.split {
+            display: flex;
+            align-items: baseline;
+            min-width: 0;
+        }
+
+        .event-title-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .event-span {
+            flex-shrink: 0;
+            margin-left: 8px;
+            font-size: 0.75em;
+            font-weight: 500;
+            color: var(--text-secondary-color);
         }
 
         /* Shown in the calendar column until the first sync finishes; spaced like the column it stands in for */
@@ -356,43 +384,40 @@
             }
         }
 
-        .gcal-logo-wrapper {
-            position: relative;
+        /* A tear-off calendar page: month on top, a date big enough to read across the room */
+        .date-tile {
             width: var(--heading-icon-size);
-            height: var(--heading-icon-size);
+            height: var(--heading-row-height);
             margin-right: 15px;
             flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border-radius: 9px;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 2px 10px rgba(0, 0, 0, 0.35);
         }
 
-        /* Centered on the icon's white square, which sits up and left of the image's middle
-           (it spans 32.0%-64.5% across and 31.9%-64.5% down in gcal.png) */
-        .gcal-date-text {
-            position: absolute;
-            top: 48.2%;
-            left: 48.25%;
-            transform: translate(-50%, -50%);
-            font-family: 'Inter', sans-serif;
+        .date-tile-month {
+            background: #1a73e8;
+            color: white;
+            font-size: 11px;
             font-weight: 700;
-            font-size: 0.94em;
-            color: #4285F4;
+            letter-spacing: 1px;
+            line-height: 17px;
+            text-align: center;
+        }
+
+        .date-tile-day {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #202124;
+            font-size: 26px;
+            font-weight: 700;
             line-height: 1;
             letter-spacing: -0.5px;
-            z-index: 2;
-        }
-
-        /* "28" at full size is wider than the white square, and blue digits vanish on the blue frame */
-        .gcal-date-text.two-digit {
-            font-size: 0.82em;
-            letter-spacing: -1px;
-            /* letter-spacing also trims after the last digit, which nudges the pair right */
-            transform: translate(calc(-50% - 0.6px), -50%);
-        }
-
-        .gcal-logo-img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5)) drop-shadow(0 2px 10px rgba(0, 0, 0, 0.35));
         }
 
         /* Event Cards */
@@ -570,8 +595,9 @@
             padding: 12px;
         }
 
-        /* Leave room for the on-screen keyboard below the modal */
-        .modal-overlay.keyboard-open {
+        /* On the wall, windows sit at the top with room for the keyboard below, and stay put when it
+           hides; otherwise the tap that hides it lands wherever the window moved away from */
+        html.kiosk .modal-overlay {
             align-items: flex-start;
             padding-top: 80px;
             box-sizing: border-box;
@@ -1267,68 +1293,31 @@
                             </template>
                         </div>
                     </div>
-                    <div class="heading-row" x-show="!calLoading && calendar.configured !== false" style="margin-bottom: 15px;">
-                        <div class="gcal-logo-wrapper">
-                            <img src="assets/gcal.png" class="gcal-logo-img">
-                            <span class="gcal-date-text" x-text="calendar.dates?.today"
-                                :class="{ 'two-digit': calendar.dates?.today > 9 }"></span>
-                        </div>
-                        <span class="section-header" style="margin: 0;">Today</span>
-                    </div>
-                    <div x-show="!calLoading && calendar.configured !== false" class="event-list-container" style="gap: 12px;">
-                        <template x-for="(event, i) in calendar.today" :key="'t'+i">
-                            <div class="event-card">
-                                <span class="event-title" x-text="event.title"></span>
-                                <span class="event-time" :class="{'all-day': event.time === 'All Day'}"
-                                    x-text="event.time"></span>
+                    <template x-for="(day, d) in calendarDays()" :key="day.key">
+                        <div class="cal-day" x-show="!calLoading && calendar.configured !== false">
+                            <div class="heading-row" :style="d === 0 ? 'margin-bottom: 15px' : ''">
+                                <div class="date-tile">
+                                    <span class="date-tile-month" x-text="day.month"></span>
+                                    <span class="date-tile-day" x-text="day.date"></span>
+                                </div>
+                                <span class="section-header" style="margin: 0;" x-text="day.name"></span>
                             </div>
-                        </template>
-                        <div class="event-card" x-show="calLoaded && calendar.today && calendar.today.length === 0">
-                            <span class="no-events" style="width:100%; text-align:center;">No events today</span>
-                        </div>
-                    </div>
-                    <div class="heading-row" x-show="!calLoading && calendar.configured !== false">
-                        <div class="gcal-logo-wrapper">
-                            <img src="assets/gcal.png" class="gcal-logo-img">
-                            <span class="gcal-date-text" x-text="calendar.dates?.tomorrow"
-                                :class="{ 'two-digit': calendar.dates?.tomorrow > 9 }"></span>
-                        </div>
-                        <span class="section-header" style="margin: 0;">Tomorrow</span>
-                    </div>
-                    <div x-show="!calLoading && calendar.configured !== false" class="event-list-container" style="gap: 12px;">
-                        <template x-for="(event, i) in calendar.tomorrow" :key="'tm'+i">
-                            <div class="event-card">
-                                <span class="event-title" x-text="event.title"></span>
-                                <span class="event-time" :class="{'all-day': event.time === 'All Day'}"
-                                    x-text="event.time"></span>
+                            <template x-for="(event, i) in day.events" :key="day.key + i">
+                                <div class="event-card">
+                                    <span class="event-title split">
+                                        <span class="event-title-text" x-text="event.title"></span>
+                                        <span class="event-span" x-show="event.span"
+                                            x-text="event.span ? `(day ${event.span.day}/${event.span.of})` : ''"></span>
+                                    </span>
+                                    <span class="event-time" :class="{ 'all-day': event.time === 'All Day' }"
+                                        x-text="event.time"></span>
+                                </div>
+                            </template>
+                            <div class="event-card" x-show="calLoaded && !day.events.length">
+                                <span class="no-events" x-text="day.emptyText"></span>
                             </div>
-                        </template>
-                        <div class="event-card" x-show="calLoaded && calendar.tomorrow && calendar.tomorrow.length === 0">
-                            <span class="no-events" style="width:100%; text-align:center;">No events tomorrow</span>
                         </div>
-                    </div>
-                    <div class="heading-row" x-show="!calLoading && calendar.configured !== false">
-                        <div class="gcal-logo-wrapper">
-                            <img src="assets/gcal.png" class="gcal-logo-img">
-                            <span class="gcal-date-text" x-text="calendar.dates?.dayAfterTomorrow"
-                                :class="{ 'two-digit': calendar.dates?.dayAfterTomorrow > 9 }"></span>
-                        </div>
-                        <span class="section-header" style="margin: 0;"
-                            x-text="calendar.dates?.dayAfterTomorrowName"></span>
-                    </div>
-                    <div x-show="!calLoading && calendar.configured !== false" class="event-list-container" style="gap: 12px;">
-                        <template x-for="(event, i) in calendar.dayAfterTomorrow" :key="'dat'+i">
-                            <div class="event-card">
-                                <span class="event-title" x-text="event.title"></span>
-                                <span class="event-time" :class="{'all-day': event.time === 'All Day'}"
-                                    x-text="event.time"></span>
-                            </div>
-                        </template>
-                        <div class="event-card"
-                            x-show="calLoaded && calendar.dayAfterTomorrow && calendar.dayAfterTomorrow.length === 0">
-                            <span class="no-events" style="width:100%; text-align:center;">No events</span>
-                        </div>
-                    </div>
+                    </template>
                 </div>
                 <div class="half-column">
                     <div class="heading-row" style="margin-bottom: 15px;">
@@ -1339,7 +1328,7 @@
                         </button>
                     </div>
                     <div class="grid-container" id="countdownGrid" style="gap: 12px;">
-                        <template x-for="event in events" :key="event.id">
+                        <template x-for="event in events.filter(e => !e.isOver)" :key="event.id">
                             <div class="countdown-container event-card" @click="openEditModal(event)">
                                 <span class="event-title" x-text="event.title"></span>
                                 <div class="event-time">
@@ -1362,7 +1351,8 @@
             </div>
         </div>
     </div>
-    <div class="modal-overlay" x-show="showModal" x-cloak @click.self="closeModal()"
+    <div class="modal-overlay" x-show="showModal" x-cloak
+        @pointerdown="backdropPress = $event.target === $el" @click.self="backdropPress && (closeModal())"
         :class="{ 'keyboard-open': kbVisible }">
         <div class="modal-content">
             <h3 x-text="editingEvent ? 'Edit Countdown' : 'Add New Countdown'"></h3>
@@ -1419,7 +1409,8 @@
             </template>
         </div>
     </template>
-    <div class="modal-overlay" x-show="showSettingsModal" x-cloak @click.self="showSettingsModal = false"
+    <div class="modal-overlay" x-show="showSettingsModal" x-cloak
+        @pointerdown="backdropPress = $event.target === $el" @click.self="backdropPress && (showSettingsModal = false)"
         :class="{ 'keyboard-open': kbVisible }">
         <div class="modal-content settings-modal">
             <div class="settings-section">
@@ -1554,6 +1545,8 @@
                 stateVersion: -1,
                 showAdvanced: false,
                 rebooting: false,
+                backdropPress: false,   // a touch started on a window's dimmed backdrop (see the modal overlays)
+                nowTick: 0,             // changes each minute, so time-based lists (finished events) re-render
                 kbVisible: false,
                 kbPage: 'abc',
                 kbShift: false,
@@ -1670,6 +1663,7 @@
 
                     this.timeHM = `${hours}:${minutes < 10 ? '0' + minutes : minutes}`;
                     this.timeAP = ampm;
+                    this.nowTick = Math.floor(now.getTime() / 60000);
 
                     const today = now.getDate();
                     if (today !== this.currentDayCheck) {
@@ -1919,6 +1913,13 @@
                 updateTimers() {
                     this.events.forEach(event => {
                         const days = daysUntil(event.date);
+
+                        // Same rule as the server, which deletes these within minutes: a countdown is over
+                        // the day after its date, unless it was added with a date from before the day
+                        // before it was added (a count-up, like "We met"). Ids are creation times in ms.
+                        const added = new Date(event.id);
+                        added.setDate(added.getDate() - 1);
+                        event.isOver = days < 0 && event.date >= isoDate(added);
 
                         event.isPast = false;
                         event.isToday = false;
@@ -2347,6 +2348,27 @@
                     } finally {
                         this.calLoading = false;
                     }
+                },
+
+                // Today, tomorrow and the day after, each with its date tile and events. Today drops
+                // timed events once they've ended (checked every minute via nowTick).
+                calendarDays() {
+                    this.nowTick; // re-run each minute
+                    const now = new Date();
+                    return ['today', 'tomorrow', 'dayAfterTomorrow'].map((key, offset) => {
+                        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
+                        const all = this.calendar[key] || [];
+                        const events = offset === 0 ? all.filter(e => !e.end || new Date(e.end) > now) : all;
+                        return {
+                            key,
+                            month: d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase(),
+                            date: d.getDate(),
+                            name: ['Today', 'Tomorrow'][offset] || d.toLocaleDateString('en-US', { weekday: 'long' }),
+                            events,
+                            emptyText: offset === 0 ? (all.length ? 'No more events today' : 'No events today')
+                                : offset === 1 ? 'No events tomorrow' : 'No events'
+                        };
+                    });
                 },
 
                 calendarStatusText() {
