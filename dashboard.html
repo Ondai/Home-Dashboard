@@ -833,15 +833,24 @@
             max-height: calc(100dvh - 40px); /* phones: the visible area, not counting the address bar */
         }
 
+        /* Three columns with equal outer ones, so the title sits in the true center
+           and the close button stays at the right edge */
         .settings-header {
-            display: flex;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
             align-items: center;
-            justify-content: space-between;
         }
 
         .settings-header h2 {
+            grid-column: 2;
             margin: 0;
             font-size: 1.4em;
+            text-align: center;
+        }
+
+        .settings-header .settings-close {
+            grid-column: 3;
+            justify-self: end;
         }
 
         .settings-close {
@@ -1024,6 +1033,52 @@
         .settings-error {
             margin: 8px 0 0;
             color: var(--delete-color);
+        }
+
+        /* Calendar setup instructions: a tab per provider, then numbered steps */
+        .cal-help {
+            margin-top: 4px;
+            padding: 14px;
+            border-radius: 8px;
+            background: #2c2c2e;
+        }
+
+        .cal-help-tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .cal-help-tab {
+            flex: 1;
+            padding: 8px 4px;
+            border: none;
+            border-radius: 8px;
+            background: #3a3a3c;
+            color: var(--text-secondary-color);
+            font-family: inherit;
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+
+        .cal-help-tab.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .cal-help ol {
+            margin: 0;
+            padding-left: 22px;
+            font-size: 0.9em;
+            line-height: 1.45;
+        }
+
+        .cal-help li {
+            margin-bottom: 8px;
+        }
+
+        .cal-help .settings-note {
+            margin-top: 4px;
         }
 
         /* Room for the on-screen keyboard while typing in settings on the wall */
@@ -1537,10 +1592,76 @@
                     <button class="btn-secondary" @click="addCalendar()" :disabled="settingsBusy === 'calendar'"
                         x-text="settingsBusy === 'calendar' ? 'Checking…' : 'Add'"></button>
                 </div>
-                <p class="settings-note">Google Calendar, on a computer: Settings → pick the calendar under "Settings
-                    for my calendars" → Integrate calendar → copy "Secret address in iCal format". Outlook and
-                    iCloud calendars work too, with their shared .ics links.</p>
                 <p class="settings-error" x-show="settingsError" x-text="settingsError"></p>
+                <button class="btn-secondary settings-button" @click="showCalendarHelp = !showCalendarHelp"
+                    :aria-expanded="showCalendarHelp" x-text="showCalendarHelp ? 'Hide Instructions' : 'Instructions'"></button>
+                <div class="cal-help" x-show="showCalendarHelp" x-cloak>
+                    <div class="cal-help-tabs">
+                        <button class="cal-help-tab" :class="{ active: calendarHelpTab === 'google' }"
+                            @click="calendarHelpTab = 'google'">Google</button>
+                        <button class="cal-help-tab" :class="{ active: calendarHelpTab === 'outlook' }"
+                            @click="calendarHelpTab = 'outlook'">Outlook</button>
+                        <button class="cal-help-tab" :class="{ active: calendarHelpTab === 'icloud' }"
+                            @click="calendarHelpTab = 'icloud'">iCloud</button>
+                    </div>
+
+                    <div x-show="calendarHelpTab === 'google'">
+                        <ol>
+                            <li>On a computer, go to <strong>calendar.google.com</strong> and sign in. (The Google
+                                Calendar phone app can't do this.)</li>
+                            <li>Click the <strong>gear icon</strong> at the top right, then choose
+                                <strong>Settings</strong>.</li>
+                            <li>In the left sidebar, under <strong>Settings for my calendars</strong>, click the
+                                calendar you want on the dashboard.</li>
+                            <li>Click <strong>Integrate calendar</strong> in the list below that calendar's name.</li>
+                            <li>Find <strong>Secret address in iCal format</strong> and click the copy icon next to
+                                it. Copy the secret one, not the "Public address".</li>
+                            <li>Paste it into the calendar address box above, give it a name if you like, and tap
+                                <strong>Add</strong>.</li>
+                            <li>Repeat for each calendar you want to show.</li>
+                        </ol>
+                        <p class="settings-note">Keep this link private: anyone who has it can see your events. If it
+                            gets out, click Reset next to it in Google Calendar, then add the new link here. Work or
+                            school accounts may have this option turned off by the admin.</p>
+                    </div>
+
+                    <div x-show="calendarHelpTab === 'outlook'">
+                        <ol>
+                            <li>On a computer, go to <strong>outlook.com</strong> (or Outlook on the web for a work
+                                account) and sign in. The new Outlook for Windows has the same settings.</li>
+                            <li>Open the <strong>Calendar</strong>, then click the <strong>gear icon</strong> (Settings)
+                                at the top right.</li>
+                            <li>Choose <strong>Calendar</strong>, then <strong>Shared calendars</strong>.</li>
+                            <li>Under <strong>Publish a calendar</strong>, pick the calendar, set the permission to
+                                <strong>Can view all details</strong>, and click <strong>Publish</strong>.</li>
+                            <li>Two links appear, HTML and ICS. Click the <strong>ICS</strong> link and choose
+                                <strong>Copy link</strong>.</li>
+                            <li>Paste it into the calendar address box above, give it a name if you like, and tap
+                                <strong>Add</strong>.</li>
+                        </ol>
+                        <p class="settings-note">Anyone with the ICS link can see your events, so keep it private.
+                            Choosing Unpublish in the same place turns the link off. Outlook can take a while to pass
+                            along new events through this link. Work accounts may have publishing turned off by the
+                            admin.</p>
+                    </div>
+
+                    <div x-show="calendarHelpTab === 'icloud'">
+                        <ol>
+                            <li>On an iPhone or iPad, open the <strong>Calendar</strong> app and tap
+                                <strong>Calendars</strong> at the bottom.</li>
+                            <li>Tap the <strong>info button (ⓘ)</strong> next to the calendar you want on the
+                                dashboard.</li>
+                            <li>Turn on <strong>Public Calendar</strong>.</li>
+                            <li>Tap <strong>Share Link</strong>, then <strong>Copy</strong>.</li>
+                            <li>Paste it into the calendar address box above, give it a name if you like, and tap
+                                <strong>Add</strong>. A link starting with webcal:// is fine.</li>
+                        </ol>
+                        <p class="settings-note">On a computer instead: sign in at <strong>icloud.com/calendar</strong>,
+                            click the info button next to the calendar, turn on Public Calendar, and click Copy. Only
+                            the calendar's owner can make it public. "Public" means anyone with the link can see the
+                            events, but it isn't listed anywhere; turn Public Calendar off to stop sharing.</p>
+                    </div>
+                </div>
             </div>
             <div class="settings-section">
                 <h3>Background</h3>
@@ -1638,6 +1759,8 @@
                 isRemote,
                 stateVersion: -1,
                 showAdvanced: false,
+                showCalendarHelp: false,  // the calendar setup instructions under Add
+                calendarHelpTab: 'google',
                 rebooting: false,
                 backdropPress: false,   // a touch started on a window's dimmed backdrop (see the modal overlays)
                 nowTick: 0,             // changes each minute, so time-based lists (finished events) re-render

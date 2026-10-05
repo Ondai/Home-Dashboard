@@ -81,7 +81,8 @@ on the same Wi-Fi, tap the gear, and add:
 - **Your calendars**: in Google Calendar on a computer, open Settings, pick a calendar under
   "Settings for my calendars", choose "Integrate calendar", and copy the
   **Secret address in iCal format**. Add one link per calendar. Outlook and iCloud calendars work
-  too, with their shared `.ics` links.
+  too, with their shared `.ics` links. The **Instructions** button under the calendar box in
+  Settings walks through each one step by step.
 
 Countdowns and backgrounds are set from the phone (or the touchscreen) as well. Changes show up on
 the wall immediately.
