@@ -123,3 +123,9 @@ like "(day 2/3)".
   paste in the current version and redeploy it to get those.
 - `tools/make_backgrounds.py` generates the seasonal, holiday and abstract backgrounds. Photos in
   `assets/backgrounds/photos` are from Unsplash; their photographers are listed in `CREDITS.md` there.
+
+## License
+
+The dashboard's code is under the MIT License (see `LICENSE`): free to use, change and share.
+The bundled libraries, font and photos keep their own licenses, listed in `assets/vendor/README.md`
+and `assets/backgrounds/photos/CREDITS.md`.
