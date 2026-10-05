@@ -1072,7 +1072,22 @@
             color: var(--text-color);
         }
 
-        /* Phone remote: just a title and the countdowns */
+        /* Phone remote: countdowns first, then the calendar below them, at any screen width */
+        html.remote .events-row {
+            flex-direction: column !important;
+            gap: 36px;
+        }
+
+        html.remote .calendar-column {
+            order: 2;
+            width: 100%;
+        }
+
+        html.remote .events-row > .half-column {
+            width: 100%;
+        }
+
+        /* Phone remote: a title, the countdowns and the calendar */
         .remote-header {
             display: flex;
             align-items: center;
@@ -1328,7 +1343,8 @@
                 </div>
             </div>
             <div class="events-row">
-                <div class="half-column" style="gap: 12px;" x-show="!isRemote">
+                <!-- The calendar column; on the phone remote it sits below the countdowns -->
+                <div class="half-column calendar-column" style="gap: 12px;">
                     <div class="cal-status" x-show="calendarStatusText()" x-cloak x-text="calendarStatusText()"></div>
                     <div class="heading-row" x-show="calLoaded && calendar.configured === false" x-cloak
                         style="margin-bottom: 15px;">
@@ -1704,9 +1720,9 @@
                     // wait for the first load, since they need the household's settings.
                     this.loadData().then(() => {
                         this.watchState();
-                        if (this.isRemote) return;
-                        this.getWeather(); // both schedule their own refreshes
-                        this.getCalendarEvents();
+                        this.getCalendarEvents(); // schedules its own refreshes
+                        if (this.isRemote) return; // the remote shows the calendar, not the weather
+                        this.getWeather();
                         this.loadSetupInfo();
                     });
                     document.addEventListener('visibilitychange', () => {
@@ -1715,10 +1731,14 @@
 
                     setInterval(() => this.updateTimers(), 60 * 1000); // day counts change at midnight
 
-                    if (this.isRemote) return; // the remote has no clock, weather or calendar
-
+                    // On the remote this only drives the calendar (finished events, the date rolling over)
                     this.mainTick();
                     setInterval(() => this.mainTick(), 1000);
+
+                    if (this.isRemote) {
+                        document.documentElement.classList.add('remote');
+                        return;
+                    }
 
                     if (this.isKiosk) {
                         document.documentElement.classList.add('kiosk');
@@ -1751,7 +1771,7 @@
                             month: 'long',
                             day: 'numeric'
                         });
-                        this.getWeather();
+                        if (!this.isRemote) this.getWeather();
                         this.getCalendarEvents();
                     }
                 },
@@ -1817,8 +1837,8 @@
                     const wasLoaded = this.settingsLoaded;
                     this.settings = settings;
                     this.settingsLoaded = true;
-                    if (!wasLoaded || this.isRemote) return; // first load: init() fetches them
-                    if (JSON.stringify(before.location) !== JSON.stringify(settings.location)) {
+                    if (!wasLoaded) return; // first load: init() fetches them
+                    if (!this.isRemote && JSON.stringify(before.location) !== JSON.stringify(settings.location)) {
                         weatherUrls = null;
                         this.getWeather();
                     }
