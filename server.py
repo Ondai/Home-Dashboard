@@ -1,3 +1,4 @@
+import calendar
 import datetime as dt
 import hashlib
 import http.server
@@ -30,6 +31,17 @@ BACKGROUND_TYPES = {'color', 'gradient', 'pattern', 'image'}
 DATE_RE = re.compile(r'^\d{4}-\d{2}-\d{2}$')
 EVENT_PATH_RE = re.compile(r'^/api/events/(\d+)$')
 CALENDAR_PATH_RE = re.compile(r'^/api/settings/calendars/(\d+)$')
+TASK_PATH_RE = re.compile(r'^/api/tasks/(\d+)$')
+TASK_DONE_PATH_RE = re.compile(r'^/api/tasks/(\d+)/done$')
+PERSON_PATH_RE = re.compile(r'^/api/settings/people/(\d+)$')
+COLOR_RE = re.compile(r'^#[0-9a-fA-F]{6}$')
+REPEAT_UNITS = {'day', 'week', 'month', 'year'}
+# A routine's next due date counts from the day it was done ("every month after the filter was
+# changed") or follows a fixed schedule ("trash night every Tuesday", "registration every October").
+REPEAT_FROM = {'done', 'schedule'}
+HISTORY_LIMIT = 20       # completion dates kept per routine ("when did we last change the filter?")
+DONE_KEEP_DAYS = 30      # checked-off one-off to-dos stay in "Done lately" this long
+MAX_PEOPLE = 12
 MAX_BODY = 256 * 1024
 
 state_lock = threading.Lock()
@@ -50,7 +62,7 @@ def load_state():
         with open(STATE_FILE, encoding='utf-8') as f:
             return json.load(f)
     except FileNotFoundError:
-        return {'events': [], 'background': None, 'settings': default_settings()}
+        return {'events': [], 'tasks': [], 'background': None, 'settings': default_settings()}
 
 
 def save_state(state):
@@ -79,9 +91,9 @@ def clean_background(raw):
     return {'type': raw['type'], 'value': raw.get('value')}
 
 
-def new_event_id(events):
+def new_id(items):
     # Millisecond timestamps, like the ids the page used to create, but never reused.
-    return max([int(time.time() * 1000)] + [e['id'] + 1 for e in events])
+    return max([int(time.time() * 1000)] + [item['id'] + 1 for item in items])
 
 
 def find_event(state, event_id):
@@ -92,7 +104,7 @@ def find_event(state, event_id):
 
 
 def add_event(state, body):
-    state['events'].append({'id': new_event_id(state['events']), **clean_event(body)})
+    state['events'].append({'id': new_id(state['events']), **clean_event(body)})
 
 
 def edit_event(state, body, event_id):
@@ -116,28 +128,192 @@ def is_over(event, today):
     return date < today and not is_count_up
 
 
-def remove_finished_countdowns():
-    """Runs every few minutes: deletes countdowns the day after their date."""
+def done_long_ago(task, today):
+    return bool(task.get('done')) and dt.date.fromisoformat(task['done']) < today - dt.timedelta(days=DONE_KEEP_DAYS)
+
+
+def remove_finished():
+    """Runs every few minutes: deletes countdowns the day after their date, and one-off to-dos a
+    month after they were checked off."""
     global state_version
     while True:
         with state_changed:
             state = load_state()
             today = dt.date.today()
-            keep = [e for e in state['events'] if not is_over(e, today)]
-            if len(keep) != len(state['events']):
-                gone = [e['title'] for e in state['events'] if is_over(e, today)]
-                state['events'] = keep
+            gone = [e['title'] for e in state['events'] if is_over(e, today)]
+            old = [t['title'] for t in state.get('tasks', []) if done_long_ago(t, today)]
+            if gone or old:
+                state['events'] = [e for e in state['events'] if not is_over(e, today)]
+                state['tasks'] = [t for t in state.get('tasks', []) if not done_long_ago(t, today)]
                 save_state(state)
                 state_version += 1
                 state_changed.notify_all()
-                print('Removed finished countdowns:', ', '.join(gone), flush=True)
+                if gone:
+                    print('Removed finished countdowns:', ', '.join(gone), flush=True)
+                if old:
+                    print('Removed to-dos done over a month ago:', ', '.join(old), flush=True)
         time.sleep(5 * 60)
+
+
+# --- To-dos: one-offs (with a due date or "anytime") and routines that repeat ---
+
+def clean_date(value, name):
+    """None, or a real YYYY-MM-DD date."""
+    if value is None:
+        return None
+    if not isinstance(value, str) or not DATE_RE.match(value):
+        raise ValueError(f'{name} must be YYYY-MM-DD')
+    dt.date.fromisoformat(value)  # rejects 2026-02-30
+    return value
+
+
+def is_id(value):
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def clean_repeat(raw):
+    if raw is None:
+        return None
+    every = raw.get('every') if isinstance(raw, dict) else None
+    if not is_id(every) or not 1 <= every <= 365 or raw.get('unit') not in REPEAT_UNITS \
+            or raw.get('from') not in REPEAT_FROM:
+        raise ValueError('repeat must be {"every": 1-365, "unit": "day|week|month|year", "from": "done|schedule"}')
+    return {'every': every, 'unit': raw['unit'], 'from': raw['from']}
+
+
+def clean_task(raw, state):
+    """Validates a client-sent to-do and keeps only the fields worth persisting."""
+    if not isinstance(raw, dict):
+        raise ValueError('expected {"title": ..., "due": "YYYY-MM-DD" or null, ...}')
+    title, notes, who = raw.get('title'), raw.get('notes') or '', raw.get('who') or []
+    if not isinstance(title, str) or not title.strip() or len(title) > 200:
+        raise ValueError('to-do title must be 1-200 characters')
+    if not isinstance(notes, str) or len(notes) > 2000:
+        raise ValueError('notes must be at most 2000 characters')
+    if not isinstance(who, list) or not all(is_id(p) for p in who):
+        raise ValueError('who must be a list of person ids')
+    people = {p['id'] for p in settings_of(state).get('people', [])}
+    repeat = clean_repeat(raw.get('repeat'))
+    due = clean_date(raw.get('due'), 'due')
+    if repeat and not due:
+        raise ValueError('a repeating to-do needs a due date')
+    history = raw.get('history') or []
+    if not isinstance(history, list):
+        raise ValueError('history must be a list of dates')
+    return {
+        'title': title.strip(),
+        'notes': notes.strip(),
+        'who': [p for p in dict.fromkeys(who) if p in people],  # anyone removed meanwhile is dropped
+        'due': due,
+        'repeat': repeat,
+        'snoozedUntil': clean_date(raw.get('snoozedUntil'), 'snoozedUntil'),
+        # A routine is never "done": checking it off moves it to its next due date instead
+        'done': None if repeat else clean_date(raw.get('done'), 'done'),
+        'history': [clean_date(d, 'history') for d in history][:HISTORY_LIMIT] if repeat else [],
+    }
+
+
+def find_task(state, task_id):
+    for task in state.setdefault('tasks', []):
+        if task['id'] == task_id:
+            return task
+    raise LookupError('no such to-do')
+
+
+def add_task(state, body):
+    tasks = state.setdefault('tasks', [])
+    tasks.append({'id': new_id(tasks), **clean_task(body, state)})
+
+
+def edit_task(state, body, task_id):
+    find_task(state, task_id).update(clean_task(body, state))
+
+
+def delete_task(state, task_id):
+    state['tasks'].remove(find_task(state, task_id))
+
+
+def add_interval(date, every, unit):
+    """date plus every days/weeks/months/years; Jan 31 plus a month is Feb 28 (or 29)."""
+    if unit in ('day', 'week'):
+        return date + dt.timedelta(days=every * (7 if unit == 'week' else 1))
+    months = date.month - 1 + every * (12 if unit == 'year' else 1)
+    year, month = date.year + months // 12, months % 12 + 1
+    return date.replace(year=year, month=month, day=min(date.day, calendar.monthrange(year, month)[1]))
+
+
+def next_due(task, today):
+    repeat = task['repeat']
+    if repeat['from'] == 'done':
+        return add_interval(today, repeat['every'], repeat['unit'])
+    # On a schedule: the first date in the series after today, so a late or early check-off
+    # doesn't shift it, and missed ones are skipped rather than piling up
+    due, steps = dt.date.fromisoformat(task['due']), 1
+    while (following := add_interval(due, repeat['every'] * steps, repeat['unit'])) <= today:
+        steps += 1
+    return following
+
+
+def complete_task(state, task_id):
+    """Checks a to-do off. A one-off is marked done; a routine gets its next due date."""
+    task, today = find_task(state, task_id), dt.date.today()
+    task['snoozedUntil'] = None
+    if not task.get('repeat'):
+        task['done'] = today.isoformat()
+        return
+    task['history'] = [today.isoformat(), *task.get('history', [])][:HISTORY_LIMIT]
+    task['due'] = next_due(task, today).isoformat()
+
+
+# --- People: who a to-do is for, each with a color on the wall ---
+
+def clean_person(raw, state, person_id=None):
+    name, color = (raw or {}).get('name'), (raw or {}).get('color')
+    if not isinstance(name, str) or not name.strip() or len(name.strip()) > 30:
+        raise ValueError('Enter a name of up to 30 characters.')
+    if not isinstance(color, str) or not COLOR_RE.match(color):
+        raise ValueError('color must be #RRGGBB')
+    for other in settings_of(state).get('people', []):
+        if other['id'] != person_id and other['name'].lower() == name.strip().lower():
+            raise ValueError(f"{other['name']} is already on the list.")
+    return {'name': name.strip(), 'color': color}
+
+
+def find_person(state, person_id):
+    for person in settings_of(state).get('people', []):
+        if person['id'] == person_id:
+            return person
+    raise LookupError('no such person')
+
+
+def add_person(state, body):
+    people = settings_of(state).setdefault('people', [])
+    if len(people) >= MAX_PEOPLE:
+        raise ValueError(f'Up to {MAX_PEOPLE} people.')
+    people.append({'id': max([0] + [p['id'] for p in people]) + 1, **clean_person(body, state)})
+
+
+def edit_person(state, body, person_id):
+    find_person(state, person_id).update(clean_person(body, state, person_id))
+
+
+def remove_person(state, person_id):
+    settings_of(state)['people'].remove(find_person(state, person_id))
+    for task in state.get('tasks', []):  # their to-dos stay, for anyone
+        task['who'] = [p for p in task.get('who', []) if p != person_id]
+
+
+def set_show_todos(state, body):
+    show = (body or {}).get('show')
+    if not isinstance(show, bool):
+        raise ValueError('expected {"show": true or false}')
+    settings_of(state)['showTodos'] = show
 
 
 # --- Household settings: where the weather is for, and which calendars to show ---
 
 def default_settings():
-    return {'location': None, 'calendars': [], 'appsScriptUrl': None}
+    return {'location': None, 'calendars': [], 'appsScriptUrl': None, 'showTodos': False, 'people': []}
 
 
 def settings_of(state):
@@ -281,7 +457,10 @@ class DashboardRequestHandler(http.server.SimpleHTTPRequestHandler):
         super().log_request(code, size)
 
     def do_POST(self):
-        if self.path == '/update':
+        done = TASK_DONE_PATH_RE.match(self.path)
+        if done:
+            self.change_state(lambda state, body: complete_task(state, int(done[1])))
+        elif self.path == '/update':
             self.update()
         elif self.path == '/kiosk/exit':
             self.exit_kiosk()
@@ -293,13 +472,25 @@ class DashboardRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.change_state(add_event)
         elif self.path == '/api/settings/calendars':
             self.change_state(add_calendar, prepare=checked_calendar)
+        elif self.path == '/api/tasks':
+            self.change_state(add_task)
+        elif self.path == '/api/settings/people':
+            self.change_state(add_person)
         else:
             self.send_error(404)
 
     def do_PUT(self):
         match = EVENT_PATH_RE.match(self.path)
+        task = TASK_PATH_RE.match(self.path)
+        person = PERSON_PATH_RE.match(self.path)
         if match:
             self.change_state(lambda state, body: edit_event(state, body, int(match[1])))
+        elif task:
+            self.change_state(lambda state, body: edit_task(state, body, int(task[1])))
+        elif person:
+            self.change_state(lambda state, body: edit_person(state, body, int(person[1])))
+        elif self.path == '/api/settings/todos':
+            self.change_state(set_show_todos)
         elif self.path == '/api/background':
             self.change_state(set_background)
         elif self.path == '/api/settings/location':
@@ -314,10 +505,16 @@ class DashboardRequestHandler(http.server.SimpleHTTPRequestHandler):
     def do_DELETE(self):
         event = EVENT_PATH_RE.match(self.path)
         calendar = CALENDAR_PATH_RE.match(self.path)
+        task = TASK_PATH_RE.match(self.path)
+        person = PERSON_PATH_RE.match(self.path)
         if event:
             self.change_state(lambda state, body: delete_event(state, int(event[1])))
         elif calendar:
             self.change_state(lambda state, body: remove_calendar(state, int(calendar[1])))
+        elif task:
+            self.change_state(lambda state, body: delete_task(state, int(task[1])))
+        elif person:
+            self.change_state(lambda state, body: remove_person(state, int(person[1])))
         else:
             self.send_error(404)
 
@@ -411,7 +608,7 @@ class DualStackServer(http.server.ThreadingHTTPServer):
 
 
 if __name__ == '__main__':
-    threading.Thread(target=remove_finished_countdowns, daemon=True).start()
+    threading.Thread(target=remove_finished, daemon=True).start()
     with DualStackServer(('::', PORT), DashboardRequestHandler) as httpd:
         print(f'Serving dashboard at http://localhost:{PORT}')
         httpd.serve_forever()

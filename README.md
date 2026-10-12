@@ -84,8 +84,8 @@ on the same Wi-Fi, tap the gear, and add:
   too, with their shared `.ics` links. The **Instructions** button under the calendar box in
   Settings walks through each one step by step.
 
-Countdowns and backgrounds are set from the phone (or the touchscreen) as well. Changes show up on
-the wall immediately.
+Countdowns, to-dos and backgrounds are set from the phone (or the touchscreen) as well. Changes show
+up on the wall immediately.
 
 ### Countdowns and count-ups
 
@@ -101,6 +101,25 @@ from it, add it again with its original date.
 Timed events drop off Today once they've ended. Events that span several days show which day it is,
 like "(day 2/3)".
 
+### To-dos
+
+Turn on **Show to-dos** in Settings to add a checklist under Coming Up, and add the people who share
+it there; each gets a color and their initial shows on their to-dos.
+
+- **Anytime** to-dos (the fall garage clean-up) stay on the list until they're done or snoozed.
+- To-dos **with a due date** (renew the registration by the 31st) join the list a week ahead and
+  turn red once they're late.
+- **Repeating** to-dos come back by themselves. "After it's done" counts from when it was checked
+  off (replace the furnace filter a month after the last one); "On a schedule" keeps to fixed dates
+  however early or late it's done (trash night every Tuesday). Each one keeps a list of when it was
+  last done. Ideas, under the title when adding one, has common home upkeep to start from.
+- **Snooze** (in a to-do's window) takes it off the list until a later day.
+
+Tap the circle to check one off; Undo appears for a few seconds. Tap the rest of it to edit, snooze
+or delete it. **Show all** adds what's coming later, what's snoozed and what was done lately;
+checked-off to-dos are removed a month later. Everything works from the phone, so the wall doesn't
+need a touchscreen.
+
 ## Day to day
 
 - **Update:** Settings → Update Dashboard
@@ -112,7 +131,7 @@ like "(day 2/3)".
 
 ## How it fits together
 
-- `server.py` serves the page on port 8000 and stores countdowns, background and household
+- `server.py` serves the page on port 8000 and stores countdowns, to-dos, background and household
   settings in `data/state.json`. `calendar_feed.py` reads the calendars.
 - `dashboard.html` is the whole interface: the wall on the Pi itself, the remote on phones.
   Add `?dashboard` to the address to see the wall view on another screen.

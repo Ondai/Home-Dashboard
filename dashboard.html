@@ -1175,6 +1175,394 @@
             margin: 0 auto 25px auto;
         }
 
+        /* To-dos, under Coming Up: what's due this week, then what can be done anytime */
+        .todo-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 28px;
+        }
+
+        .task-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .task-group-name {
+            margin-top: 6px;
+            text-align: center;
+            font-size: 1.05em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: var(--heading-shadow);
+        }
+
+        .task-card {
+            gap: 10px;
+            padding-left: 6px;
+        }
+
+        /* A finger-sized tap area around the drawn circle */
+        .task-check {
+            flex-shrink: 0;
+            width: 48px;
+            height: 48px;
+            margin: -6px 0;
+            padding: 0;
+            border: none;
+            background: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+        }
+
+        .task-check-circle {
+            width: 30px;
+            height: 30px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2.5px solid rgba(255, 255, 255, 0.55);
+            border-radius: 50%;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+
+        .task-check svg {
+            width: 18px;
+            height: 18px;
+            opacity: 0;
+        }
+
+        .task-card.checked .task-check-circle {
+            background-color: var(--success-color);
+            border-color: var(--success-color);
+        }
+
+        .task-card.checked .task-check svg {
+            opacity: 1;
+        }
+
+        .task-card.checked .task-title {
+            text-decoration: line-through;
+            color: var(--text-secondary-color);
+        }
+
+        /* To-dos run longer than countdowns: up to two lines, then an ellipsis */
+        .task-title {
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+            white-space: normal;
+            line-height: 1.25;
+        }
+
+        .task-repeat {
+            margin-left: 8px;
+            font-size: 0.8em;
+            color: var(--text-secondary-color);
+        }
+
+        .task-people {
+            display: flex;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        /* A person's color with their initial */
+        .person-dot {
+            width: 28px;
+            height: 28px;
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: 15px;
+            font-weight: 700;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+        }
+
+        .person-dot.small {
+            width: 24px;
+            height: 24px;
+            font-size: 13px;
+        }
+
+        .task-when.late {
+            color: var(--delete-color);
+        }
+
+        .task-when.today {
+            color: var(--success-color);
+        }
+
+        .task-when.quiet {
+            color: var(--text-secondary-color);
+            font-weight: 500;
+        }
+
+        .task-more {
+            align-self: center;
+            padding: 10px 22px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 999px;
+            background: rgba(28, 28, 30, 0.85);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            color: var(--text-color);
+            font-family: inherit;
+            font-size: 1.1em;
+            cursor: pointer;
+        }
+
+        /* A row of options where one (or, for people, several) is picked */
+        .choice-row {
+            display: flex;
+            gap: 6px;
+        }
+
+        .choice-row.wrap {
+            flex-wrap: wrap;
+        }
+
+        .choice {
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 44px;
+            padding: 8px 10px;
+            border: none;
+            border-radius: 8px;
+            background: #3a3a3c;
+            color: var(--text-secondary-color);
+            font-family: inherit;
+            font-size: 0.95em;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .choice-row.wrap .choice {
+            flex: 0 1 auto;
+            padding: 8px 14px;
+        }
+
+        .choice.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        /* Light rather than blue, so each person's own color still stands out */
+        .choice.person.active {
+            background: #e5e5ea;
+            color: #1c1c1e;
+        }
+
+        .task-modal .settings-body {
+            gap: 6px;
+        }
+
+        .task-modal .settings-label {
+            margin-top: 18px;
+        }
+
+        .task-modal textarea {
+            width: 100%;
+            box-sizing: border-box;
+            resize: vertical;
+            background: #333;
+            border: 1px solid #444;
+            border-radius: 8px;
+            color: var(--text-color);
+            font-size: 1.05em;
+            font-family: inherit;
+            padding: 12px;
+        }
+
+        .repeat-every {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin: 12px 0 8px;
+        }
+
+        .stepper {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .stepper button {
+            width: 48px;
+            height: 44px;
+            border: none;
+            border-radius: 8px;
+            background: #3a3a3c;
+            color: var(--text-color);
+            font-size: 1.3em;
+            cursor: pointer;
+        }
+
+        .stepper span {
+            min-width: 2.2em;
+            text-align: center;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+
+        .idea-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .idea {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px 12px;
+            border: none;
+            border-radius: 8px;
+            background: #2c2c2e;
+            color: var(--text-color);
+            font-family: inherit;
+            font-size: 0.95em;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .idea-every {
+            flex-shrink: 0;
+            color: var(--text-secondary-color);
+        }
+
+        /* "Done · Undo" after checking something off */
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: 24px;
+            transform: translateX(-50%);
+            z-index: 150;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            max-width: calc(100% - 32px);
+            box-sizing: border-box;
+            padding: 10px 10px 10px 22px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 999px;
+            background: rgba(28, 28, 30, 0.95);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            font-size: 1.2em;
+        }
+
+        .toast-text {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .toast button {
+            flex-shrink: 0;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 999px;
+            background: #3a3a3c;
+            color: var(--primary-color);
+            font-family: inherit;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* Settings: the to-dos on/off switch and the people who share them */
+        .switch-row {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 12px;
+            border: none;
+            border-radius: 8px;
+            background: #2c2c2e;
+            color: var(--text-color);
+            font-family: inherit;
+            font-size: 1em;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .switch {
+            position: relative;
+            flex-shrink: 0;
+            width: 51px;
+            height: 31px;
+            border-radius: 999px;
+            background: #48484a;
+            transition: background-color 0.2s;
+        }
+
+        .switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 27px;
+            height: 27px;
+            border-radius: 50%;
+            background: white;
+            transition: transform 0.2s;
+        }
+
+        .switch.on {
+            background: var(--success-color);
+        }
+
+        .switch.on::after {
+            transform: translateX(20px);
+        }
+
+        .person-entry {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0;
+            border: none;
+            background: none;
+            color: var(--text-color);
+            font-family: inherit;
+            font-size: 1em;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .swatches {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 4px 0 8px;
+        }
+
+        .swatch {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .swatch.active {
+            box-shadow: 0 0 0 3px var(--bg-color), 0 0 0 5px white;
+        }
+
         /* The wall: a bigger modal and date picker, in proportion to the full-width keyboard */
         @media (min-width: 900px) {
             .modal-content {
@@ -1305,6 +1693,30 @@
 
             .date-picker-month {
                 white-space: nowrap;
+                font-size: 1em;
+            }
+
+            .task-check {
+                width: 40px;
+                height: 40px;
+            }
+
+            .task-check-circle {
+                width: 26px;
+                height: 26px;
+            }
+
+            .person-dot {
+                width: 22px;
+                height: 22px;
+                font-size: 12px;
+            }
+
+            .task-group-name {
+                font-size: 0.9em;
+            }
+
+            .toast {
                 font-size: 1em;
             }
         }
@@ -1484,6 +1896,49 @@
                             </div>
                         </template>
                     </div>
+                    <!-- To-dos (turned on in Settings): late, due this week, then anytime. Show all adds what's
+                         coming later, snoozed and done lately. Tap the circle to check one off, the rest to edit it -->
+                    <div class="todo-section" x-show="settings.showTodos" x-cloak>
+                        <div class="heading-row" style="margin-bottom: 15px;">
+                            <span class="section-header" style="margin: 0;">To Do</span>
+                            <button class="add-btn" @click="openTaskModal()" aria-label="Add to-do">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M3 12h18" stroke="currentColor"
+                                        stroke-width="2.6" stroke-linecap="round" /></svg>
+                            </button>
+                        </div>
+                        <div class="task-group" id="todoList">
+                            <template x-for="group in taskGroups()" :key="group.key">
+                                <div class="task-group">
+                                    <div class="task-group-name" x-show="group.name" x-text="group.name"></div>
+                                    <template x-for="task in group.tasks" :key="task.id">
+                                        <div class="event-card task-card" @click="openTaskModal(task)"
+                                            :class="{ checked: task.done || completingId === task.id }">
+                                            <button class="task-check" @click.stop="toggleTaskDone(task)"
+                                                :aria-label="(task.done ? 'Not done: ' : 'Done: ') + task.title">
+                                                <span class="task-check-circle"><svg viewBox="0 0 24 24" aria-hidden="true">
+                                                        <path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor"
+                                                            stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
+                                            </button>
+                                            <span class="event-title task-title"><span x-text="task.title"></span><span
+                                                    class="task-repeat" x-show="task.repeat" title="Repeats">↻</span></span>
+                                            <span class="task-people" x-show="taskPeople(task).length">
+                                                <template x-for="person in taskPeople(task)" :key="person.id">
+                                                    <span class="person-dot" :style="personDotStyle(person)" :title="person.name"
+                                                        x-text="initial(person)"></span>
+                                                </template>
+                                            </span>
+                                            <span class="event-time task-when" :class="task.view.tone" x-text="task.view.label"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                        <div class="event-card" x-show="!taskGroups().length">
+                            <span class="no-events" x-text="tasks.length ? 'All caught up 🎉' : 'No to-dos yet'"></span>
+                        </div>
+                        <button class="task-more" x-show="showAllTasks || hiddenTaskCount()" @click="showAllTasks = !showAllTasks"
+                            x-text="showAllTasks ? 'Show less' : `Show all · ${hiddenTaskCount()} more`"></button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1525,10 +1980,142 @@
             </div>
         </div>
     </div>
+    <!-- Add or edit a to-do. It scrolls inside, like Settings: the date picker makes it tall -->
+    <div class="modal-overlay" x-show="showTaskModal" x-cloak
+        @pointerdown="backdropPress = $event.target === $el" @click.self="backdropPress && closeTaskModal()"
+        :class="{ 'keyboard-open': kbVisible }">
+        <div class="modal-content settings-modal task-modal">
+            <div class="settings-header">
+                <h2 x-text="taskForm.id ? 'Edit To-Do' : 'New To-Do'"></h2>
+                <button class="settings-close" @click="closeTaskModal()" aria-label="Close">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor"
+                            stroke-width="2.4" stroke-linecap="round" /></svg>
+                </button>
+            </div>
+            <div class="settings-body">
+                <input type="text" x-ref="taskTitleInput" x-model="taskForm.title" placeholder="What needs doing?"
+                    maxlength="120" autocomplete="off" data-kb-sentence :inputmode="isKiosk ? 'none' : 'text'"
+                    @focus="isKiosk && kbOpen($event.target)" @blur="kbClose()">
+                <div x-show="!taskForm.id && !taskForm.title">
+                    <button class="advanced-toggle" @click="showTaskIdeas = !showTaskIdeas"
+                        x-text="(showTaskIdeas ? '▾' : '▸') + ' Ideas: common home upkeep'"></button>
+                    <div class="idea-list" x-show="showTaskIdeas">
+                        <template x-for="idea in routineIdeas" :key="idea.title">
+                            <button class="idea" @click="useIdea(idea)">
+                                <span x-text="idea.title"></span>
+                                <span class="idea-every" x-text="repeatText(idea)"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
+                <div x-show="people.length">
+                    <h4 class="settings-label">Who</h4>
+                    <div class="choice-row wrap">
+                        <template x-for="person in people" :key="person.id">
+                            <button class="choice person" :class="{ active: taskForm.who.includes(person.id) }"
+                                @click="toggleWho(person.id)" :aria-pressed="taskForm.who.includes(person.id)">
+                                <span class="person-dot small" :style="personDotStyle(person)" x-text="initial(person)"></span>
+                                <span x-text="person.name"></span>
+                            </button>
+                        </template>
+                    </div>
+                    <p class="settings-note" x-show="!taskForm.who.length">Nobody picked: it's for anyone.</p>
+                </div>
+
+                <h4 class="settings-label">When</h4>
+                <div class="choice-row">
+                    <button class="choice" :class="{ active: taskForm.when === 'anytime' }" @click="taskForm.when = 'anytime'">Anytime</button>
+                    <button class="choice" :class="{ active: taskForm.when === 'date' }" @click="taskForm.when = 'date'">By a date</button>
+                    <button class="choice" :class="{ active: taskForm.when === 'repeat' }" @click="taskForm.when = 'repeat'">Repeats</button>
+                </div>
+                <p class="settings-note" x-show="taskForm.when === 'anytime'">Stays on the list until it's done or
+                    snoozed.</p>
+                <p class="settings-note" x-show="taskForm.when === 'date'">Joins the list a week ahead.</p>
+                <div x-show="taskForm.when === 'repeat'">
+                    <div class="repeat-every">
+                        <span>Every</span>
+                        <div class="stepper">
+                            <button @click="taskForm.every = Math.max(1, taskForm.every - 1)" aria-label="Less often">−</button>
+                            <span x-text="taskForm.every"></span>
+                            <button @click="taskForm.every = Math.min(365, taskForm.every + 1)" aria-label="More often">+</button>
+                        </div>
+                    </div>
+                    <div class="choice-row">
+                        <template x-for="unit in ['day', 'week', 'month', 'year']" :key="unit">
+                            <button class="choice" :class="{ active: taskForm.unit === unit }" @click="taskForm.unit = unit"
+                                x-text="unit + (taskForm.every === 1 ? '' : 's')"></button>
+                        </template>
+                    </div>
+                    <h4 class="settings-label">Next one is due</h4>
+                    <div class="choice-row">
+                        <button class="choice" :class="{ active: taskForm.from === 'done' }" @click="taskForm.from = 'done'">After it's done</button>
+                        <button class="choice" :class="{ active: taskForm.from === 'schedule' }" @click="taskForm.from = 'schedule'">On a schedule</button>
+                    </div>
+                    <p class="settings-note" x-text="repeatHint()"></p>
+                </div>
+                <div x-show="taskForm.when !== 'anytime'">
+                    <h4 class="settings-label" x-text="taskForm.when === 'repeat' ? 'Next due' : 'Due'"></h4>
+                    <div class="date-picker">
+                        <div class="date-picker-header">
+                            <button class="date-picker-nav" @click="shiftPickerMonth(-12)" aria-label="Previous year">«</button>
+                            <button class="date-picker-nav" @click="shiftPickerMonth(-1)" aria-label="Previous month">‹</button>
+                            <span class="date-picker-month" x-text="pickerLabel()"></span>
+                            <button class="date-picker-nav" @click="shiftPickerMonth(1)" aria-label="Next month">›</button>
+                            <button class="date-picker-nav" @click="shiftPickerMonth(12)" aria-label="Next year">»</button>
+                        </div>
+                        <div class="date-picker-grid">
+                            <template x-for="(weekday, i) in ['S', 'M', 'T', 'W', 'T', 'F', 'S']" :key="i">
+                                <span class="date-picker-weekday" x-text="weekday"></span>
+                            </template>
+                            <template x-for="day in pickerDays()" :key="day.date">
+                                <button class="date-picker-day" x-text="day.day" @click="taskForm.due = day.date" :class="{
+                                    'other-month': !day.inMonth, today: day.isToday, selected: day.date === taskForm.due }"></button>
+                            </template>
+                        </div>
+                        <div class="date-picker-summary" x-text="pickerSummary(taskForm.due)"></div>
+                    </div>
+                </div>
+
+                <h4 class="settings-label">Notes</h4>
+                <textarea x-model="taskForm.notes" rows="3" maxlength="2000" placeholder="Filter size, part numbers, where to buy…"
+                    data-kb-sentence :inputmode="isKiosk ? 'none' : 'text'" @focus="isKiosk && kbOpen($event.target)"
+                    @blur="kbClose()"></textarea>
+
+                <div x-show="taskForm.history.length">
+                    <h4 class="settings-label">Last done</h4>
+                    <p class="settings-current" x-text="taskForm.history.map(d => dayLabel(d)).join(' · ')"></p>
+                </div>
+
+                <div x-show="taskForm.id && !taskForm.done">
+                    <h4 class="settings-label">Snooze</h4>
+                    <p class="settings-current" x-show="isSnoozed(taskForm)"
+                        x-text="isSnoozed(taskForm) ? `Snoozed until ${dayLabel(taskForm.snoozedUntil)}` : ''"></p>
+                    <div class="choice-row wrap">
+                        <template x-for="option in snoozeOptions()" :key="option.label">
+                            <button class="choice" @click="snoozeTask(option.date)" x-text="option.label"></button>
+                        </template>
+                    </div>
+                    <p class="settings-note">Takes it off the list until then.</p>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-delete" x-show="taskForm.id" @click="deleteTask()">Delete</button>
+                <div class="right-buttons">
+                    <button class="btn-secondary" @click="closeTaskModal()">Cancel</button>
+                    <button class="btn-primary" @click="saveTask()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="toast" x-show="toast" x-cloak role="status">
+        <span class="toast-text" x-text="toast ? toast.text : ''"></span>
+        <button @click="undoToast()">Undo</button>
+    </div>
     <template x-if="isKiosk">
         <div>
-            <div class="more-below-fade" x-show="moreBelowText" x-cloak></div>
-            <button class="more-below" x-show="moreBelowText" x-cloak @click="scrollDown()"
+            <div class="more-below-fade" x-show="moreBelowText && !toast" x-cloak></div>
+            <button class="more-below" x-show="moreBelowText && !toast" x-cloak @click="scrollDown()"
                 x-text="'↓  ' + moreBelowText"></button>
         </div>
     </template>
@@ -1664,6 +2251,48 @@
                 </div>
             </div>
             <div class="settings-section">
+                <h3>To-dos</h3>
+                <button class="switch-row" role="switch" :aria-checked="settings.showTodos"
+                    @click="saveShowTodos(!settings.showTodos)" :disabled="settingsBusy === 'todos'">
+                    <span>Show to-dos</span>
+                    <span class="switch" :class="{ on: settings.showTodos }"></span>
+                </button>
+                <p class="settings-note" style="margin-top: 8px;">A checklist under Coming Up for chores, errands and
+                    upkeep like changing the furnace filter.</p>
+                <div x-show="settings.showTodos">
+                    <h4 class="settings-label">People</h4>
+                    <template x-for="person in people" :key="person.id">
+                        <div class="calendar-entry">
+                            <button class="person-entry" @click="editPerson(person)" :aria-label="'Edit ' + person.name">
+                                <span class="person-dot small" :style="personDotStyle(person)" x-text="initial(person)"></span>
+                                <span x-text="person.name"></span>
+                            </button>
+                            <button class="calendar-remove" @click="removePerson(person)"
+                                :aria-label="'Remove ' + person.name">✕</button>
+                        </div>
+                    </template>
+                    <p class="settings-current" x-show="!people.length">None yet. Add the people who share the
+                        to-dos to give each one a color.</p>
+                    <div class="settings-row">
+                        <input type="text" x-model="personForm.name" :placeholder="personForm.id ? 'Name' : 'Add a person'"
+                            maxlength="30" autocomplete="off" :inputmode="isKiosk ? 'none' : 'text'"
+                            @focus="isKiosk && kbOpen($event.target)" @blur="kbClose()" @keydown.enter="savePerson()">
+                        <button class="btn-secondary" @click="savePerson()" :disabled="settingsBusy === 'person'"
+                            x-text="personForm.id ? 'Save' : 'Add'"></button>
+                    </div>
+                    <div class="swatches">
+                        <template x-for="color in personColors" :key="color">
+                            <button class="swatch" :style="{ backgroundColor: color }" @click="personForm.color = color"
+                                :class="{ active: personColor() === color }" :aria-label="'Color ' + color"></button>
+                        </template>
+                    </div>
+                    <p class="settings-error" x-show="personError" x-text="personError"></p>
+                    <button class="advanced-toggle" x-show="personForm.id" @click="resetPersonForm()">Cancel editing</button>
+                    <p class="settings-note" x-show="people.length && !personForm.id">Tap a name to rename it or change
+                        its color.</p>
+                </div>
+            </div>
+            <div class="settings-section">
                 <h3>Background</h3>
                 <template x-for="group in backgroundGroups" :key="group.name">
                     <div class="background-group">
@@ -1718,6 +2347,7 @@
             let kbTarget = null;
             let kbRepeat = null;
             let returnToTopTimer = null;
+            let toastTimer = null;
 
             const pad = n => String(n).padStart(2, '0');
             const isoDate = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -1728,7 +2358,7 @@
             // NWS forecast URLs for the household's location: looked up once, again if the location changes
             let weatherUrls = null;
 
-            const NO_SETTINGS = { location: null, calendars: [], appsScriptUrl: null };
+            const NO_SETTINGS = { location: null, calendars: [], appsScriptUrl: null, showTodos: false, people: [] };
 
             // Whole calendar days from today to a YYYY-MM-DD date (negative if past); DST-safe
             const daysUntil = (dateStr) => {
@@ -1736,6 +2366,37 @@
                 const [y, m, d] = dateStr.split('-').map(Number);
                 return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000);
             };
+
+            // To-dos with a due date join the list this many days ahead
+            const SOON_DAYS = 6;
+            // The to-do list's groups, in order. Only the first two show until "Show all"
+            const TASK_GROUPS = [
+                { key: 'now', name: '', always: true }, // late, today and the next six days
+                { key: 'anytime', name: 'Anytime', always: true },
+                { key: 'later', name: 'Coming later', always: false },
+                { key: 'snoozed', name: 'Snoozed', always: false },
+                { key: 'done', name: 'Done lately', always: false }
+            ];
+            // The add/edit window's fields; "when" is anytime, date or repeat
+            const BLANK_TASK = { id: null, title: '', who: [], when: 'anytime', due: '', every: 1, unit: 'month',
+                from: 'done', notes: '', history: [], snoozedUntil: null, done: null };
+            // People's colors, bright enough to stand out on the dark cards
+            const PERSON_COLORS = ['#0A84FF', '#FF9F0A', '#30D158', '#FF375F', '#BF5AF2', '#64D2FF', '#FFD60A', '#AC8E68'];
+            // Starting points under "Ideas" when adding a to-do
+            const ROUTINE_IDEAS = [
+                { title: 'Replace furnace filter', every: 1, unit: 'month' },
+                { title: 'Test smoke & CO alarms', every: 1, unit: 'month' },
+                { title: 'Clean dishwasher filter', every: 1, unit: 'month' },
+                { title: 'Clean range hood filter', every: 3, unit: 'month' },
+                { title: 'Replace fridge water filter', every: 6, unit: 'month' },
+                { title: 'Clean gutters', every: 6, unit: 'month' },
+                { title: 'Rotate tires', every: 6, unit: 'month' },
+                { title: 'Replace smoke alarm batteries', every: 1, unit: 'year' },
+                { title: 'Flush water heater', every: 1, unit: 'year' },
+                { title: 'Clean dryer vent', every: 1, unit: 'year' },
+                { title: 'HVAC tune-up', every: 1, unit: 'year' },
+                { title: 'Renew car registration', every: 1, unit: 'year', from: 'schedule' }
+            ];
 
             // Background options for the settings picker. Seasonal, holiday and abstract art is generated by
             // tools/make_backgrounds.py; photos load from Unsplash.
@@ -1796,6 +2457,17 @@
                 moreBelowText: '',
                 returnToTopAfterMs: 60 * 1000,
                 events: [],
+                tasks: [],
+                showTaskModal: false,
+                showTaskIdeas: false,
+                showAllTasks: false,      // the to-do list's "Show all": coming later, snoozed and done lately too
+                taskForm: { ...BLANK_TASK },
+                completingId: null,       // the to-do showing its check for a moment before it's saved
+                toast: null,              // { text, undo } after checking off a to-do
+                routineIdeas: ROUTINE_IDEAS,
+                personColors: PERSON_COLORS,
+                personForm: { id: null, name: '', color: null }, // color null: the first one nobody has
+                personError: '',
                 showModal: false,
                 editingEvent: null,
                 modalTitle: '',
@@ -1935,12 +2607,14 @@
 
                 applyState(state) {
                     if (state.version !== undefined) this.stateVersion = state.version;
-                    const json = JSON.stringify({ events: state.events, background: state.background, settings: state.settings });
+                    const json = JSON.stringify({ events: state.events, tasks: state.tasks, background: state.background,
+                        settings: state.settings });
                     if (json === this.lastStateJson) return; // nothing new; skip re-rendering
                     this.lastStateJson = json;
                     localStorage.setItem('dashboardState', json);
 
                     this.events = state.events || [];
+                    this.tasks = state.tasks || [];
                     this.updateTimers();
 
                     const bg = state.background;
@@ -1958,7 +2632,7 @@
                 applySettings(settings) {
                     const before = this.settings;
                     const wasLoaded = this.settingsLoaded;
-                    this.settings = settings;
+                    this.settings = { ...NO_SETTINGS, ...settings }; // saved before to-dos existed: no people yet
                     this.settingsLoaded = true;
                     if (!wasLoaded) return; // first load: init() fetches them
                     if (!this.isRemote && JSON.stringify(before.location) !== JSON.stringify(settings.location)) {
@@ -2226,12 +2900,12 @@
                     });
                 },
 
-                pickerSummary() {
-                    if (!this.modalDate) return 'Tap a date';
-                    const [y, m, d] = this.modalDate.split('-').map(Number);
+                pickerSummary(date = this.modalDate) {
+                    if (!date) return 'Tap a date';
+                    const [y, m, d] = date.split('-').map(Number);
                     const label = new Date(y, m - 1, d).toLocaleDateString('en-US',
                         { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-                    const days = daysUntil(this.modalDate);
+                    const days = daysUntil(date);
                     const when = days === 0 ? 'today' : days === 1 ? 'tomorrow' : days === -1 ? 'yesterday'
                         : days > 0 ? `in ${days} days` : `${-days} days ago`;
                     return `${label} · ${when}`;
@@ -2247,8 +2921,10 @@
                     }).length;
                     const countdowns = hidden('#countdownGrid .countdown-container');
                     const calendar = hidden('.event-list-container .event-card:not(:has(.no-events))');
+                    const todos = hidden('#todoList .task-card');
                     const parts = [];
                     if (countdowns) parts.push(`${countdowns} more countdown${countdowns === 1 ? '' : 's'}`);
+                    if (todos) parts.push(`${todos} more to-do${todos === 1 ? '' : 's'}`);
                     if (calendar) parts.push(`${calendar} more calendar event${calendar === 1 ? '' : 's'}`);
                     this.moreBelowText = parts.join(' · ');
                 },
@@ -2261,7 +2937,8 @@
                 noteActivity() {
                     clearTimeout(returnToTopTimer);
                     returnToTopTimer = setTimeout(() => {
-                        if (this.showModal || this.showSettingsModal) return this.noteActivity();
+                        if (this.showModal || this.showSettingsModal || this.showTaskModal) return this.noteActivity();
+                        this.showAllTasks = false;
                         scrollTo({ top: 0, behavior: 'smooth' });
                         // Smooth scrolling can stall when the window isn't being painted; make sure we get there
                         setTimeout(() => { if (scrollY > 0) scrollTo(0, 0); }, 2000);
@@ -2291,6 +2968,10 @@
                         return;
                     }
                     const before = kbTarget ? kbTarget.value.slice(0, kbTarget.selectionStart) : '';
+                    if (kbTarget && 'kbSentence' in kbTarget.dataset) { // to-dos and notes: like a sentence
+                        this.kbShift = /^\s*$|[.!?]\s+$/.test(before);
+                        return;
+                    }
                     this.kbShift = before === '' || before.endsWith(' ');
                 },
 
@@ -2432,6 +3113,271 @@
                         }
                     }
                     return newTitle;
+                },
+
+                // --- To-dos ---
+
+                get people() {
+                    return this.settings.people;
+                },
+
+                isSnoozed(task) {
+                    return !!task.snoozedUntil && task.snoozedUntil > isoDate(new Date());
+                },
+
+                // Which group a to-do is in, and what its label on the right says
+                taskView(task) {
+                    if (task.done) return { group: 'done', label: this.dayLabel(task.done), tone: 'quiet' };
+                    if (this.isSnoozed(task)) {
+                        return { group: 'snoozed', label: 'Until ' + this.dayLabel(task.snoozedUntil), tone: 'quiet' };
+                    }
+                    if (!task.due) return { group: 'anytime', label: '', tone: '' };
+                    const days = daysUntil(task.due);
+                    if (days > SOON_DAYS) return { group: 'later', label: this.dayLabel(task.due), tone: 'quiet' };
+                    if (days < 0) return { group: 'now', label: `${-days} day${days === -1 ? '' : 's'} late`, tone: 'late' };
+                    return { group: 'now', label: this.dayLabel(task.due), tone: days === 0 ? 'today' : '' };
+                },
+
+                // Every to-do in its group, sorted; empty groups left out
+                allTaskGroups() {
+                    this.nowTick; // due dates turn into "Today", then "late", at midnight
+                    const groups = Object.fromEntries(TASK_GROUPS.map(g => [g.key, []]));
+                    this.tasks.forEach(task => {
+                        const view = this.taskView(task);
+                        groups[view.group].push({ ...task, view });
+                    });
+                    const byDue = (a, b) => a.due.localeCompare(b.due) || a.id - b.id;
+                    groups.now.sort(byDue);
+                    groups.later.sort(byDue);
+                    groups.anytime.sort((a, b) => a.id - b.id); // oldest first
+                    groups.snoozed.sort((a, b) => a.snoozedUntil.localeCompare(b.snoozedUntil));
+                    groups.done.sort((a, b) => b.done.localeCompare(a.done) || b.id - a.id);
+                    return TASK_GROUPS.map(g => ({ ...g, tasks: groups[g.key] })).filter(g => g.tasks.length);
+                },
+
+                taskGroups() {
+                    const groups = this.allTaskGroups();
+                    return this.showAllTasks ? groups : groups.filter(g => g.always);
+                },
+
+                hiddenTaskCount() {
+                    return this.allTaskGroups().filter(g => !g.always).reduce((n, g) => n + g.tasks.length, 0);
+                },
+
+                // "Today", "Tomorrow", "Yesterday", a weekday within a week either way, otherwise "Oct 28"
+                // (with the year if it isn't this one)
+                dayLabel(dateStr) {
+                    const days = daysUntil(dateStr);
+                    const names = { 0: 'Today', 1: 'Tomorrow', '-1': 'Yesterday' };
+                    if (names[days]) return names[days];
+                    const [y, m, d] = dateStr.split('-').map(Number);
+                    const date = new Date(y, m - 1, d);
+                    if (Math.abs(days) <= SOON_DAYS) return date.toLocaleDateString('en-US', { weekday: 'short' });
+                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric',
+                        year: y === new Date().getFullYear() ? undefined : 'numeric' });
+                },
+
+                taskPeople(task) {
+                    return task.who.map(id => this.people.find(p => p.id === id)).filter(Boolean);
+                },
+
+                // Dark initials on the light colors (orange, yellow, teal), white on the rest
+                personDotStyle(person) {
+                    const [r, g, b] = [1, 3, 5].map(i => parseInt(person.color.slice(i, i + 2), 16));
+                    return { backgroundColor: person.color, color: 0.299 * r + 0.587 * g + 0.114 * b > 140 ? '#1c1c1e' : 'white' };
+                },
+
+                initial(person) {
+                    return [...new Intl.Segmenter().segment(person.name)][0].segment.toUpperCase();
+                },
+
+                openTaskModal(task = null) {
+                    const saved = task && this.tasks.find(t => t.id === task.id);
+                    this.taskForm = saved ? {
+                        ...BLANK_TASK,
+                        ...JSON.parse(JSON.stringify(saved)),
+                        ...saved.repeat, // every, unit, from
+                        when: saved.repeat ? 'repeat' : saved.due ? 'date' : 'anytime',
+                        due: saved.due || ''
+                    } : { ...BLANK_TASK };
+                    this.showTaskIdeas = false;
+                    this.showPickerMonthOf(this.taskForm.due || isoDate(new Date()));
+                    this.showTaskModal = true;
+                    // On the wall, start typing a new one right away (see openAddModal)
+                    if (!saved && this.isKiosk) this.$nextTick(() => {
+                        this.$refs.taskTitleInput.focus();
+                        this.kbOpen(this.$refs.taskTitleInput);
+                    });
+                },
+
+                closeTaskModal() {
+                    this.kbClose();
+                    this.showTaskModal = false;
+                },
+
+                toggleWho(id) {
+                    const who = this.taskForm.who;
+                    this.taskForm.who = who.includes(id) ? who.filter(p => p !== id) : [...who, id];
+                },
+
+                useIdea(idea) {
+                    Object.assign(this.taskForm, { title: idea.title, when: 'repeat', every: idea.every, unit: idea.unit,
+                        from: idea.from || 'done', due: this.taskForm.due || isoDate(new Date()) });
+                    this.showPickerMonthOf(this.taskForm.due);
+                },
+
+                repeatText({ every, unit }) {
+                    return every === 1 ? `Every ${unit}` : `Every ${every} ${unit}s`;
+                },
+
+                repeatHint() {
+                    const { every, unit, from } = this.taskForm;
+                    return from === 'done'
+                        ? `Due again ${every === 1 ? 'a ' + unit : `${every} ${unit}s`} after it's checked off. Good for filters and other upkeep.`
+                        : `Due ${this.repeatText(this.taskForm).toLowerCase()} from the date below, however early or late it's checked off. Good for trash night or renewals.`;
+                },
+
+                snoozeOptions() {
+                    const now = new Date();
+                    const inDays = n => isoDate(new Date(now.getFullYear(), now.getMonth(), now.getDate() + n));
+                    const coming = weekday => inDays((weekday - now.getDay() + 6) % 7 + 1); // 1-7 days ahead
+                    const options = [
+                        { label: 'Tomorrow', date: inDays(1) },
+                        { label: 'Saturday', date: coming(6) },
+                        { label: 'Monday', date: coming(1) },
+                        { label: 'In 2 weeks', date: inDays(14) },
+                        { label: 'In a month', date: isoDate(new Date(now.getFullYear(), now.getMonth() + 1, now.getDate())) }
+                    ].filter((option, i, all) => all.findIndex(o => o.date === option.date) === i);
+                    return this.isSnoozed(this.taskForm) ? [{ label: 'Unsnooze', date: null }, ...options] : options;
+                },
+
+                taskBody() {
+                    const f = this.taskForm;
+                    return {
+                        title: f.title.trim(),
+                        notes: f.notes,
+                        who: f.who,
+                        due: f.when === 'anytime' ? null : f.due,
+                        repeat: f.when === 'repeat' ? { every: f.every, unit: f.unit, from: f.from } : null,
+                        snoozedUntil: f.snoozedUntil,
+                        done: f.done,
+                        history: f.history
+                    };
+                },
+
+                async saveTask() {
+                    if (!this.taskForm.title.trim()) return alert('Please say what needs doing.');
+                    if (this.taskForm.when !== 'anytime' && !this.taskForm.due) return alert('Please pick a due date.');
+                    const id = this.taskForm.id;
+                    try {
+                        await this.api(id ? 'PUT' : 'POST', id ? '/api/tasks/' + id : '/api/tasks', this.taskBody());
+                        this.closeTaskModal();
+                    } catch (e) {
+                        // Leave the window open so nothing typed is lost
+                        alert('Could not save: ' + e.message);
+                    }
+                },
+
+                snoozeTask(date) {
+                    this.taskForm.snoozedUntil = date;
+                    this.saveTask();
+                },
+
+                async deleteTask() {
+                    if (!window.confirm(`Delete "${this.taskForm.title}"?`)) return;
+                    try {
+                        await this.api('DELETE', '/api/tasks/' + this.taskForm.id);
+                        this.closeTaskModal();
+                    } catch (e) {
+                        alert('Could not delete: ' + e.message);
+                    }
+                },
+
+                // The circle on a to-do. Checking one off shows the check for a moment, then it moves to Done
+                // lately (a routine moves to its next due date), with Undo. A done one can be unchecked.
+                async toggleTaskDone(task) {
+                    const saved = this.tasks.find(t => t.id === task.id);
+                    if (!saved || this.completingId) return;
+                    const before = JSON.parse(JSON.stringify(saved));
+                    const path = '/api/tasks/' + task.id;
+                    try {
+                        if (saved.done) return await this.api('PUT', path, { ...before, done: null });
+                        this.completingId = task.id;
+                        await new Promise(r => setTimeout(r, 450));
+                        await this.api('POST', path + '/done');
+                        const after = this.tasks.find(t => t.id === task.id);
+                        const next = after && after.repeat ? `. Next: ${this.dayLabel(after.due)}` : '';
+                        this.showToast(`Done: ${before.title}${next}`, () => this.api('PUT', path, before));
+                    } catch (e) {
+                        alert('Could not save: ' + e.message);
+                    } finally {
+                        this.completingId = null;
+                    }
+                },
+
+                showToast(text, undo) {
+                    clearTimeout(toastTimer);
+                    this.toast = { text, undo };
+                    toastTimer = setTimeout(() => { this.toast = null; }, 8000);
+                },
+
+                async undoToast() {
+                    const { undo } = this.toast;
+                    clearTimeout(toastTimer);
+                    this.toast = null;
+                    try {
+                        await undo();
+                    } catch (e) {
+                        alert('Could not undo: ' + e.message);
+                    }
+                },
+
+                // Settings: the to-dos switch and the people they're for
+
+                saveShowTodos(show) {
+                    this.saveSetting('todos', 'PUT', '/api/settings/todos', { show });
+                },
+
+                // The color the person form saves: the one tapped, otherwise the first nobody has yet
+                personColor() {
+                    if (this.personForm.color) return this.personForm.color;
+                    const used = this.people.map(p => p.color);
+                    return PERSON_COLORS.find(c => !used.includes(c)) || PERSON_COLORS[0];
+                },
+
+                resetPersonForm() {
+                    this.personForm = { id: null, name: '', color: null };
+                    this.personError = '';
+                },
+
+                editPerson(person) {
+                    this.personForm = { id: person.id, name: person.name, color: person.color };
+                    this.personError = '';
+                },
+
+                async savePerson() {
+                    const { id, name } = this.personForm;
+                    this.settingsBusy = 'person';
+                    this.personError = '';
+                    try {
+                        await this.api(id ? 'PUT' : 'POST', '/api/settings/people' + (id ? '/' + id : ''),
+                            { name, color: this.personColor() });
+                        this.resetPersonForm();
+                    } catch (e) {
+                        this.personError = e.message;
+                    } finally {
+                        this.settingsBusy = '';
+                    }
+                },
+
+                async removePerson(person) {
+                    if (!window.confirm(`Remove ${person.name}? Their to-dos stay on the list, for anyone.`)) return;
+                    try {
+                        await this.api('DELETE', '/api/settings/people/' + person.id);
+                        if (this.personForm.id === person.id) this.resetPersonForm();
+                    } catch (e) {
+                        this.personError = e.message;
+                    }
                 },
 
                 // Refreshes every 30 minutes (the next-hours view goes stale quickly); after a failure the
