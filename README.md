@@ -120,6 +120,25 @@ or delete it. **Show all** adds what's coming later, what's snoozed and what was
 checked-off to-dos are removed a month later. Everything works from the phone, so the wall doesn't
 need a touchscreen.
 
+#### Google Tasks
+
+The dashboard can also show the task lists of a Google account, so to-dos can be added from
+anywhere with the Google Tasks app. Google Tasks can't share a list between accounts, so a shared
+family account works well: make a list for each person, plus one for the household, and add that
+account to the Google Tasks app on each phone.
+
+To connect it, open Settings → To-dos → Google Tasks → **Instructions** on a computer. It takes a few
+minutes in Google Apps Script with `google_tasks_data.gs`; then paste its link into Settings.
+
+- Lists named after a person show as theirs; choose for each list in Settings whose it is (or hide it).
+- To-dos added on the dashboard go into Google Tasks: onto the list of the one person they're for,
+  otherwise the first list for anyone. Checking off, editing and deleting go to Google too.
+- Repeating to-dos stay on the dashboard. Google doesn't let other apps see the repeats set in its
+  app, so set repeats on the dashboard. Sub-tasks aren't shown.
+- Changes made in the Google Tasks app reach the wall within about three minutes.
+- Once connected, the link only works for this dashboard. To connect a different one, run
+  `forgetDashboard` in the script once.
+
 ## Day to day
 
 - **Update:** Settings → Update Dashboard
@@ -132,7 +151,8 @@ need a touchscreen.
 ## How it fits together
 
 - `server.py` serves the page on port 8000 and stores countdowns, to-dos, background and household
-  settings in `data/state.json`. `calendar_feed.py` reads the calendars.
+  settings in `data/state.json`. `calendar_feed.py` reads the calendars, and `google_tasks.py` talks
+  to the optional Google Tasks script (`google_tasks_data.gs`).
 - `dashboard.html` is the whole interface: the wall on the Pi itself, the remote on phones.
   Add `?dashboard` to the address to see the wall view on another screen.
 - `start_dashboard.sh` runs Chromium full screen and reopens it if it closes.

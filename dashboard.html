@@ -1563,6 +1563,23 @@
             box-shadow: 0 0 0 3px var(--bg-color), 0 0 0 5px white;
         }
 
+        /* Settings: whose to-dos each Google Tasks list holds */
+        .list-show {
+            flex-shrink: 0;
+            max-width: 55%;
+            padding: 8px 10px;
+            border: none;
+            border-radius: 8px;
+            background: #3a3a3c;
+            color: var(--text-color);
+            font-family: inherit;
+            font-size: 0.95em;
+        }
+
+        .cal-help a {
+            color: var(--primary-color);
+        }
+
         /* The wall: a bigger modal and date picker, in proportion to the full-width keyboard */
         @media (min-width: 900px) {
             .modal-content {
@@ -1899,6 +1916,7 @@
                     <!-- To-dos (turned on in Settings): late, due this week, then anytime. Show all adds what's
                          coming later, snoozed and done lately. Tap the circle to check one off, the rest to edit it -->
                     <div class="todo-section" x-show="settings.showTodos" x-cloak>
+                        <div class="cal-status" x-show="googleStatusText()" x-cloak x-text="googleStatusText()"></div>
                         <div class="heading-row" style="margin-bottom: 15px;">
                             <span class="section-header" style="margin: 0;">To Do</span>
                             <button class="add-btn" @click="openTaskModal()" aria-label="Add to-do">
@@ -2098,6 +2116,7 @@
                     </div>
                     <p class="settings-note">Takes it off the list until then.</p>
                 </div>
+                <p class="settings-note" style="margin-top: 14px;" x-show="taskHome()" x-text="taskHome()"></p>
             </div>
             <div class="modal-buttons">
                 <button class="btn-delete" x-show="taskForm.id" @click="deleteTask()">Delete</button>
@@ -2286,10 +2305,78 @@
                                 :class="{ active: personColor() === color }" :aria-label="'Color ' + color"></button>
                         </template>
                     </div>
-                    <p class="settings-error" x-show="personError" x-text="personError"></p>
                     <button class="advanced-toggle" x-show="personForm.id" @click="resetPersonForm()">Cancel editing</button>
                     <p class="settings-note" x-show="people.length && !personForm.id">Tap a name to rename it or change
                         its color.</p>
+
+                    <h4 class="settings-label">Google Tasks</h4>
+                    <div x-show="!settings.googleTasks">
+                        <p class="settings-current">Not connected. Connect a Google account's task lists to see and
+                            check them off here, and add to-dos from anywhere with the Google Tasks app.</p>
+                        <div class="settings-row">
+                            <input type="text" x-model="googleTasksInput" placeholder="Google Tasks script link"
+                                autocomplete="off" data-kb-plain :inputmode="isKiosk ? 'none' : 'url'"
+                                @focus="isKiosk && kbOpen($event.target)" @blur="kbClose()" @keydown.enter="connectGoogleTasks()">
+                            <button class="btn-secondary" @click="connectGoogleTasks()" :disabled="settingsBusy === 'google'"
+                                x-text="settingsBusy === 'google' ? 'Checking…' : 'Connect'"></button>
+                        </div>
+                        <button class="btn-secondary settings-button" @click="showGoogleTasksHelp = !showGoogleTasksHelp"
+                            :aria-expanded="showGoogleTasksHelp"
+                            x-text="showGoogleTasksHelp ? 'Hide Instructions' : 'Instructions'"></button>
+                        <div class="cal-help" x-show="showGoogleTasksHelp" x-cloak>
+                            <ol>
+                                <li>On a computer, open this dashboard's Settings (on home Wi-Fi) so you can copy and paste
+                                    between the two.</li>
+                                <li>In another tab, go to <strong>script.google.com</strong>, signed in to the Google account
+                                    whose task lists you want (a shared family account works well). Click <strong>New
+                                    project</strong>.</li>
+                                <li>Click <strong>Untitled project</strong> at the top and name it
+                                    <strong>Home Dashboard Tasks</strong>.</li>
+                                <li>Open <a x-show="!isKiosk" href="google_tasks_data.gs" target="_blank">the dashboard's
+                                    Google Tasks script</a><strong x-show="isKiosk"
+                                    x-text="(setupUrls[0] || '') + '/google_tasks_data.gs'"></strong>, copy all of it,
+                                    and paste it over everything in the editor. Click the save icon.</li>
+                                <li>In the left sidebar, click <strong>+</strong> next to <strong>Services</strong>, choose
+                                    <strong>Google Tasks API</strong>, and click <strong>Add</strong>.</li>
+                                <li>Click <strong>Deploy</strong> at the top right, then <strong>New deployment</strong>.
+                                    Click the gear next to "Select type" and choose <strong>Web app</strong>.</li>
+                                <li>Set <strong>Execute as</strong> to <strong>Me</strong> and <strong>Who has
+                                    access</strong> to <strong>Anyone</strong>, then click <strong>Deploy</strong>.</li>
+                                <li>Click <strong>Authorize access</strong> and pick the same account. Google warns that it
+                                    hasn't verified the app (it's your own script): click <strong>Advanced</strong>, then
+                                    <strong>Go to Home Dashboard Tasks (unsafe)</strong>. If permissions have checkboxes,
+                                    tick them all, then click <strong>Allow</strong>.</li>
+                                <li>Copy the <strong>Web app URL</strong>, paste it into the box above, and click
+                                    <strong>Connect</strong>.</li>
+                            </ol>
+                            <p class="settings-note">Once connected, the link only works for this dashboard. Set repeating
+                                to-dos up here rather than in the Google Tasks app: Google doesn't let other apps see
+                                its repeats. Sub-tasks aren't shown.</p>
+                        </div>
+                    </div>
+                    <div x-show="settings.googleTasks">
+                        <p class="settings-current" x-text="google && google.error
+                            ? `Connected, but the last check failed: ${google.error}.` : 'Connected. Show each list as:'"></p>
+                        <template x-for="list in (google ? google.lists : [])" :key="list.id">
+                            <div class="calendar-entry">
+                                <span x-text="list.title"></span>
+                                <select class="list-show" @change="setListShow(list.id, $event.target.value)"
+                                    :aria-label="'Show ' + list.title + ' as'">
+                                    <option value="anyone" :selected="listShow(list.id) === 'anyone'">For anyone</option>
+                                    <template x-for="person in people" :key="person.id">
+                                        <option :value="person.id" :selected="listShow(list.id) === person.id"
+                                            x-text="`${person.name}'s`"></option>
+                                    </template>
+                                    <option value="hidden" :selected="listShow(list.id) === 'hidden'">Don't show</option>
+                                </select>
+                            </div>
+                        </template>
+                        <p class="settings-note">New to-dos go to the list of the person they're for, or else the first
+                            list for anyone. Repeating ones stay on the dashboard.</p>
+                        <button class="btn-secondary settings-button" style="margin-top: 10px;"
+                            @click="disconnectGoogleTasks()">Disconnect Google Tasks</button>
+                    </div>
+                    <p class="settings-error" x-show="todoError" x-text="todoError"></p>
                 </div>
             </div>
             <div class="settings-section">
@@ -2377,9 +2464,10 @@
                 { key: 'snoozed', name: 'Snoozed', always: false },
                 { key: 'done', name: 'Done lately', always: false }
             ];
-            // The add/edit window's fields; "when" is anytime, date or repeat
-            const BLANK_TASK = { id: null, title: '', who: [], when: 'anytime', due: '', every: 1, unit: 'month',
-                from: 'done', notes: '', history: [], snoozedUntil: null, done: null };
+            // The add/edit window's fields; "when" is anytime, date or repeat. source is 'google' for a
+            // to-do from Google Tasks
+            const BLANK_TASK = { id: null, source: null, title: '', who: [], when: 'anytime', due: '', every: 1,
+                unit: 'month', from: 'done', notes: '', history: [], snoozedUntil: null, done: null };
             // People's colors, bright enough to stand out on the dark cards
             const PERSON_COLORS = ['#0A84FF', '#FF9F0A', '#30D158', '#FF375F', '#BF5AF2', '#64D2FF', '#FFD60A', '#AC8E68'];
             // Starting points under "Ideas" when adding a to-do
@@ -2467,7 +2555,11 @@
                 routineIdeas: ROUTINE_IDEAS,
                 personColors: PERSON_COLORS,
                 personForm: { id: null, name: '', color: null }, // color null: the first one nobody has
-                personError: '',
+                todoError: '',            // a people or Google Tasks setting that couldn't be saved
+                google: null,             // Google Tasks' lists and to-dos as the server last read them
+                googleSnoozed: {},        // Google Tasks to-do id: snoozed until
+                googleTasksInput: '',
+                showGoogleTasksHelp: false,
                 showModal: false,
                 editingEvent: null,
                 modalTitle: '',
@@ -2607,14 +2699,16 @@
 
                 applyState(state) {
                     if (state.version !== undefined) this.stateVersion = state.version;
-                    const json = JSON.stringify({ events: state.events, tasks: state.tasks, background: state.background,
-                        settings: state.settings });
+                    const json = JSON.stringify({ events: state.events, tasks: state.tasks, google: state.google,
+                        googleSnoozed: state.googleSnoozed, background: state.background, settings: state.settings });
                     if (json === this.lastStateJson) return; // nothing new; skip re-rendering
                     this.lastStateJson = json;
                     localStorage.setItem('dashboardState', json);
 
                     this.events = state.events || [];
                     this.tasks = state.tasks || [];
+                    this.google = state.google || null;
+                    this.googleSnoozed = state.googleSnoozed || {};
                     this.updateTimers();
 
                     const bg = state.background;
@@ -3125,6 +3219,71 @@
                     return !!task.snoozedUntil && task.snoozedUntil > isoDate(new Date());
                 },
 
+                // The dashboard's own to-dos, then Google Tasks' from the lists that show, in one shape
+                allTasks() {
+                    const google = (this.google ? this.google.tasks : []).filter(t => this.listShow(t.list) !== 'hidden')
+                        .map(t => {
+                            const show = this.listShow(t.list);
+                            return { ...t, id: 'g:' + t.id, googleId: t.id, source: 'google', repeat: null, history: [],
+                                who: show === 'anyone' ? [] : [show], snoozedUntil: this.googleSnoozed[t.id] || null };
+                        });
+                    return [...this.tasks, ...google];
+                },
+
+                // How a Google Tasks list shows: 'anyone', 'hidden' or a person's id. A list that hasn't been
+                // set goes to the person with its name, if there's one
+                listShow(listId) {
+                    const show = (this.settings.googleTaskLists || {})[listId];
+                    if (show === 'anyone' || show === 'hidden' || this.people.some(p => p.id === show)) return show;
+                    const list = this.google && this.google.lists.find(l => l.id === listId);
+                    const namesake = list && this.people.find(p => p.name.toLowerCase() === list.title.trim().toLowerCase());
+                    return namesake ? namesake.id : 'anyone';
+                },
+
+                // The Google Tasks list for a to-do for these people: the one person's own list, otherwise
+                // the first list for anyone. Null when Google Tasks isn't connected
+                googleListFor(who) {
+                    const lists = this.google ? this.google.lists.filter(l => this.listShow(l.id) !== 'hidden') : [];
+                    const own = who.length === 1 && lists.find(l => this.listShow(l.id) === who[0]);
+                    const shared = lists.find(l => this.listShow(l.id) === 'anyone');
+                    return (own || shared || lists[0] || {}).id || null;
+                },
+
+                googleListName(listId) {
+                    const list = this.google && this.google.lists.find(l => l.id === listId);
+                    return list ? list.title : '';
+                },
+
+                googleStatusText() {
+                    if (!this.google || !this.google.error || !this.settings.showTodos) return '';
+                    const at = this.google.at && new Date(this.google.at)
+                        .toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                    return `Couldn't reach Google Tasks.${at ? ` Showing its to-dos as of ${at}.` : ''}`;
+                },
+
+                // Where the to-do in the window is kept, once Google Tasks is connected
+                taskHome() {
+                    const f = this.taskForm;
+                    if (!this.google) return '';
+                    if (f.when === 'repeat') {
+                        return f.source === 'google' ? 'Saving moves it from Google Tasks to the dashboard, which keeps repeating to-dos.'
+                            : 'Kept on the dashboard, which keeps repeating to-dos.';
+                    }
+                    if (f.source === 'google') {
+                        const saved = this.allTasks().find(t => t.id === f.id);
+                        const list = saved && this.sameWho(f.who, saved.who) ? saved.list : this.googleListFor(f.who);
+                        return `In Google Tasks, on the ${this.googleListName(list)} list.`;
+                    }
+                    if (!f.id && this.googleListFor(f.who)) {
+                        return `Goes into Google Tasks, on the ${this.googleListName(this.googleListFor(f.who))} list.`;
+                    }
+                    return f.id ? 'Kept on the dashboard.' : '';
+                },
+
+                sameWho(a, b) {
+                    return [...a].sort().join() === [...b].sort().join();
+                },
+
                 // Which group a to-do is in, and what its label on the right says
                 taskView(task) {
                     if (task.done) return { group: 'done', label: this.dayLabel(task.done), tone: 'quiet' };
@@ -3142,16 +3301,16 @@
                 allTaskGroups() {
                     this.nowTick; // due dates turn into "Today", then "late", at midnight
                     const groups = Object.fromEntries(TASK_GROUPS.map(g => [g.key, []]));
-                    this.tasks.forEach(task => {
+                    // seq breaks ties: the dashboard's oldest first, then Google's in their lists' order
+                    this.allTasks().forEach((task, seq) => {
                         const view = this.taskView(task);
-                        groups[view.group].push({ ...task, view });
+                        groups[view.group].push({ ...task, view, seq });
                     });
-                    const byDue = (a, b) => a.due.localeCompare(b.due) || a.id - b.id;
+                    const byDue = (a, b) => a.due.localeCompare(b.due) || a.seq - b.seq;
                     groups.now.sort(byDue);
                     groups.later.sort(byDue);
-                    groups.anytime.sort((a, b) => a.id - b.id); // oldest first
-                    groups.snoozed.sort((a, b) => a.snoozedUntil.localeCompare(b.snoozedUntil));
-                    groups.done.sort((a, b) => b.done.localeCompare(a.done) || b.id - a.id);
+                    groups.snoozed.sort((a, b) => a.snoozedUntil.localeCompare(b.snoozedUntil) || a.seq - b.seq);
+                    groups.done.sort((a, b) => b.done.localeCompare(a.done) || b.seq - a.seq);
                     return TASK_GROUPS.map(g => ({ ...g, tasks: groups[g.key] })).filter(g => g.tasks.length);
                 },
 
@@ -3192,7 +3351,7 @@
                 },
 
                 openTaskModal(task = null) {
-                    const saved = task && this.tasks.find(t => t.id === task.id);
+                    const saved = task && this.allTasks().find(t => t.id === task.id);
                     this.taskForm = saved ? {
                         ...BLANK_TASK,
                         ...JSON.parse(JSON.stringify(saved)),
@@ -3265,16 +3424,49 @@
                     };
                 },
 
+                // New one-offs go into Google Tasks when it's connected; repeating ones stay on the dashboard
                 async saveTask() {
-                    if (!this.taskForm.title.trim()) return alert('Please say what needs doing.');
-                    if (this.taskForm.when !== 'anytime' && !this.taskForm.due) return alert('Please pick a due date.');
-                    const id = this.taskForm.id;
+                    const f = this.taskForm;
+                    if (!f.title.trim()) return alert('Please say what needs doing.');
+                    if (f.when !== 'anytime' && !f.due) return alert('Please pick a due date.');
+                    const googleList = !f.id && f.when !== 'repeat' && this.googleListFor(f.who);
                     try {
-                        await this.api(id ? 'PUT' : 'POST', id ? '/api/tasks/' + id : '/api/tasks', this.taskBody());
+                        if (f.source === 'google') {
+                            await this.saveGoogleTask();
+                        } else if (googleList) {
+                            await this.api('POST', '/api/google-tasks/add', { list: googleList, ...this.googleFields() });
+                        } else {
+                            await this.api(f.id ? 'PUT' : 'POST', f.id ? '/api/tasks/' + f.id : '/api/tasks', this.taskBody());
+                        }
                         this.closeTaskModal();
                     } catch (e) {
                         // Leave the window open so nothing typed is lost
                         alert('Could not save: ' + e.message);
+                    }
+                },
+
+                googleFields() {
+                    const f = this.taskForm;
+                    return { title: f.title.trim(), notes: f.notes.trim(), due: f.when === 'anytime' ? null : f.due };
+                },
+
+                // Only what changed is sent, so a snooze alone doesn't wait on Google
+                async saveGoogleTask() {
+                    const f = this.taskForm;
+                    const saved = this.allTasks().find(t => t.id === f.id);
+                    const target = { list: saved.list, id: saved.googleId };
+                    if (f.when === 'repeat') { // repeating to-dos live on the dashboard
+                        await this.api('POST', '/api/tasks', this.taskBody());
+                        return this.api('POST', '/api/google-tasks/delete', target);
+                    }
+                    if ((f.snoozedUntil || null) !== saved.snoozedUntil) {
+                        await this.api('PUT', '/api/google-tasks/snooze', { id: saved.googleId, until: f.snoozedUntil || null });
+                    }
+                    const fields = this.googleFields();
+                    const moved = !this.sameWho(f.who, saved.who);
+                    if (moved || ['title', 'notes', 'due'].some(k => fields[k] !== saved[k])) {
+                        await this.api('POST', '/api/google-tasks/edit',
+                            { ...target, ...fields, toList: moved ? this.googleListFor(f.who) : null });
                     }
                 },
 
@@ -3284,9 +3476,14 @@
                 },
 
                 async deleteTask() {
-                    if (!window.confirm(`Delete "${this.taskForm.title}"?`)) return;
+                    const f = this.taskForm;
+                    if (!window.confirm(`Delete "${f.title}"?${f.source === 'google' ? ' It goes from Google Tasks too.' : ''}`)) return;
                     try {
-                        await this.api('DELETE', '/api/tasks/' + this.taskForm.id);
+                        if (f.source === 'google') {
+                            await this.api('POST', '/api/google-tasks/delete', { list: f.list, id: f.googleId });
+                        } else {
+                            await this.api('DELETE', '/api/tasks/' + f.id);
+                        }
                         this.closeTaskModal();
                     } catch (e) {
                         alert('Could not delete: ' + e.message);
@@ -3296,18 +3493,22 @@
                 // The circle on a to-do. Checking one off shows the check for a moment, then it moves to Done
                 // lately (a routine moves to its next due date), with Undo. A done one can be unchecked.
                 async toggleTaskDone(task) {
-                    const saved = this.tasks.find(t => t.id === task.id);
+                    const saved = this.allTasks().find(t => t.id === task.id);
                     if (!saved || this.completingId) return;
                     const before = JSON.parse(JSON.stringify(saved));
-                    const path = '/api/tasks/' + task.id;
+                    const google = saved.source === 'google' && { list: saved.list, id: saved.googleId };
+                    const path = '/api/tasks/' + saved.id;
+                    // Back as it was: Google's "not done", or the dashboard's to-do with its old due date
+                    const reopen = () => google ? this.api('POST', '/api/google-tasks/undone', google)
+                        : this.api('PUT', path, { ...before, done: null });
                     try {
-                        if (saved.done) return await this.api('PUT', path, { ...before, done: null });
-                        this.completingId = task.id;
+                        if (saved.done) return await reopen();
+                        this.completingId = saved.id;
                         await new Promise(r => setTimeout(r, 450));
-                        await this.api('POST', path + '/done');
-                        const after = this.tasks.find(t => t.id === task.id);
+                        await (google ? this.api('POST', '/api/google-tasks/done', google) : this.api('POST', path + '/done'));
+                        const after = this.allTasks().find(t => t.id === saved.id);
                         const next = after && after.repeat ? `. Next: ${this.dayLabel(after.due)}` : '';
-                        this.showToast(`Done: ${before.title}${next}`, () => this.api('PUT', path, before));
+                        this.showToast(`Done: ${before.title}${next}`, reopen);
                     } catch (e) {
                         alert('Could not save: ' + e.message);
                     } finally {
@@ -3347,37 +3548,56 @@
 
                 resetPersonForm() {
                     this.personForm = { id: null, name: '', color: null };
-                    this.personError = '';
+                    this.todoError = '';
                 },
 
                 editPerson(person) {
                     this.personForm = { id: person.id, name: person.name, color: person.color };
-                    this.personError = '';
+                    this.todoError = '';
                 },
 
-                async savePerson() {
-                    const { id, name } = this.personForm;
-                    this.settingsBusy = 'person';
-                    this.personError = '';
+                // Like saveSetting, with any error shown in the To-dos section
+                async saveTodoSetting(name, method, path, body, after = () => {}) {
+                    this.settingsBusy = name;
+                    this.todoError = '';
                     try {
-                        await this.api(id ? 'PUT' : 'POST', '/api/settings/people' + (id ? '/' + id : ''),
-                            { name, color: this.personColor() });
-                        this.resetPersonForm();
+                        await this.api(method, path, body);
+                        after();
                     } catch (e) {
-                        this.personError = e.message;
+                        this.todoError = e.message;
                     } finally {
                         this.settingsBusy = '';
                     }
                 },
 
-                async removePerson(person) {
+                savePerson() {
+                    const { id, name } = this.personForm;
+                    this.saveTodoSetting('person', id ? 'PUT' : 'POST', '/api/settings/people' + (id ? '/' + id : ''),
+                        { name, color: this.personColor() }, () => this.resetPersonForm());
+                },
+
+                removePerson(person) {
                     if (!window.confirm(`Remove ${person.name}? Their to-dos stay on the list, for anyone.`)) return;
-                    try {
-                        await this.api('DELETE', '/api/settings/people/' + person.id);
+                    this.saveTodoSetting('person', 'DELETE', '/api/settings/people/' + person.id, undefined, () => {
                         if (this.personForm.id === person.id) this.resetPersonForm();
-                    } catch (e) {
-                        this.personError = e.message;
-                    }
+                    });
+                },
+
+                connectGoogleTasks() {
+                    this.saveTodoSetting('google', 'PUT', '/api/settings/google-tasks', { url: this.googleTasksInput }, () => {
+                        this.googleTasksInput = '';
+                        this.showGoogleTasksHelp = false;
+                    });
+                },
+
+                disconnectGoogleTasks() {
+                    if (!window.confirm('Disconnect Google Tasks? Its to-dos stay in Google; they just leave the dashboard.')) return;
+                    this.saveTodoSetting('google', 'PUT', '/api/settings/google-tasks', { url: '' });
+                },
+
+                setListShow(listId, value) {
+                    const show = value === 'anyone' || value === 'hidden' ? value : Number(value);
+                    this.saveTodoSetting('lists', 'PUT', '/api/settings/google-tasks/lists', { list: listId, show });
                 },
 
                 // Refreshes every 30 minutes (the next-hours view goes stale quickly); after a failure the

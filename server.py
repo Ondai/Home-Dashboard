@@ -13,6 +13,7 @@ import time
 import urllib.parse
 
 import calendar_feed
+import google_tasks
 
 PORT = 8000
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -24,7 +25,8 @@ KIOSK_PAUSE_FILE = os.path.expanduser('~/.cache/home-dashboard/kiosk-paused')
 KIOSK_PROFILE_DIR = os.path.expanduser('~/.local/share/home-dashboard/chromium')
 
 # Only these are served; everything else in the repo (.git, data/, server.py) stays private.
-STATIC_FILES = {'/dashboard.html'}
+# The Google Tasks script is linked from its setup instructions, to copy into script.google.com.
+STATIC_FILES = {'/dashboard.html', '/google_tasks_data.gs'}
 STATIC_PREFIXES = ('/assets/',)
 
 BACKGROUND_TYPES = {'color', 'gradient', 'pattern', 'image'}
@@ -42,6 +44,9 @@ REPEAT_FROM = {'done', 'schedule'}
 HISTORY_LIMIT = 20       # completion dates kept per routine ("when did we last change the filter?")
 DONE_KEEP_DAYS = 30      # checked-off one-off to-dos stay in "Done lately" this long
 MAX_PEOPLE = 12
+GOOGLE_ID_RE = re.compile(r'^[\w-]{1,200}$')
+GOOGLE_ACTION_RE = re.compile(r'^/api/google-tasks/(add|edit|done|undone|delete)$')
+GOOGLE_POLL_SECONDS = 3 * 60  # how soon a to-do added in the Google Tasks app reaches the wall
 MAX_BODY = 256 * 1024
 
 state_lock = threading.Lock()
@@ -51,10 +56,18 @@ state_changed = threading.Condition(state_lock)
 state_version = 0
 LONG_POLL_SECONDS = 25
 
+# Google Tasks as last read: its lists and to-dos, when, and why the latest read failed if it did.
+# Google keeps the real copy, so this lives in memory; pages get it along with the saved state.
+google_cache = {'lists': [], 'tasks': [], 'at': None, 'error': None}
 
-def file_hash(path):
-    with open(path, 'rb') as f:
-        return hashlib.sha256(f.read()).hexdigest()
+
+def code_hash():
+    """Of the server's Python files (server.py and the modules beside it)."""
+    digest = hashlib.sha256()
+    for name in sorted(f for f in os.listdir(ROOT) if f.endswith('.py')):
+        with open(os.path.join(ROOT, name), 'rb') as f:
+            digest.update(name.encode() + f.read())
+    return digest.hexdigest()
 
 
 def load_state():
@@ -133,8 +146,8 @@ def done_long_ago(task, today):
 
 
 def remove_finished():
-    """Runs every few minutes: deletes countdowns the day after their date, and one-off to-dos a
-    month after they were checked off."""
+    """Runs every few minutes: deletes countdowns the day after their date, one-off to-dos a month
+    after they were checked off, and snoozes on Google Tasks to-dos once they're over."""
     global state_version
     while True:
         with state_changed:
@@ -142,9 +155,12 @@ def remove_finished():
             today = dt.date.today()
             gone = [e['title'] for e in state['events'] if is_over(e, today)]
             old = [t['title'] for t in state.get('tasks', []) if done_long_ago(t, today)]
-            if gone or old:
+            snoozed = state.get('googleSnoozed', {})
+            woken = [i for i, until in snoozed.items() if until <= today.isoformat()]
+            if gone or old or woken:
                 state['events'] = [e for e in state['events'] if not is_over(e, today)]
                 state['tasks'] = [t for t in state.get('tasks', []) if not done_long_ago(t, today)]
+                state['googleSnoozed'] = {i: until for i, until in snoozed.items() if i not in woken}
                 save_state(state)
                 state_version += 1
                 state_changed.notify_all()
@@ -301,6 +317,10 @@ def remove_person(state, person_id):
     settings_of(state)['people'].remove(find_person(state, person_id))
     for task in state.get('tasks', []):  # their to-dos stay, for anyone
         task['who'] = [p for p in task.get('who', []) if p != person_id]
+    lists = settings_of(state).get('googleTaskLists', {})
+    for list_id, show in lists.items():  # so do their Google Tasks lists
+        if show == person_id:
+            lists[list_id] = 'anyone'
 
 
 def set_show_todos(state, body):
@@ -308,6 +328,150 @@ def set_show_todos(state, body):
     if not isinstance(show, bool):
         raise ValueError('expected {"show": true or false}')
     settings_of(state)['showTodos'] = show
+
+
+# --- Google Tasks: one-off to-dos kept in a Google account, through google_tasks_data.gs ---
+
+def google_connection():
+    """(link, key) for the connected Google Tasks script, or None."""
+    with state_lock:
+        settings = settings_of(load_state())
+    google = settings.get('googleTasks')
+    return (google['url'], settings['googleTasksKey']) if google else None
+
+
+def remember_google(data):
+    """Keeps a fresh read of Google Tasks. Call with state_lock held."""
+    google_cache.update(lists=data['lists'], tasks=data['tasks'], at=dt.datetime.now().isoformat(), error=None)
+
+
+def checked_google_tasks(body):
+    """A Google Tasks link once the script has answered it, with its first read; None to disconnect.
+
+    The key stays the same for this dashboard, so reconnecting (say, to a new deployment of the same
+    script, which remembers the key) just works."""
+    url = str((body or {}).get('url') or '').strip()
+    if not url:
+        return None
+    if not url.startswith('https://script.google.com/'):
+        raise ValueError("That isn't an Apps Script web app link; those start with https://script.google.com/.")
+    with state_lock:
+        key = settings_of(load_state()).get('googleTasksKey') or google_tasks.new_key()
+    try:
+        data = google_tasks.call(url, key, 'read')
+    except google_tasks.GoogleTasksError as e:
+        raise ValueError(f"Couldn't use that link: {e}.")
+    return {'url': url, 'key': key, 'data': data}
+
+
+def set_google_tasks(state, checked):
+    settings = settings_of(state)
+    if checked is None:
+        settings.pop('googleTasks', None)
+        state.pop('googleSnoozed', None)
+        google_cache.update(lists=[], tasks=[], at=None, error=None)
+        return
+    settings['googleTasksKey'] = checked['key']
+    settings['googleTasks'] = {'url': checked['url']}
+    remember_google(checked['data'])
+
+
+def set_google_list(state, body):
+    """How one Google Tasks list shows: as anyone's to-dos, as one person's, or not at all. Kept
+    apart from the connection, so reconnecting doesn't lose it."""
+    list_id, show = (body or {}).get('list'), (body or {}).get('show')
+    if not settings_of(state).get('googleTasks'):
+        raise ValueError('Google Tasks is not connected')
+    if not isinstance(list_id, str) or not GOOGLE_ID_RE.match(list_id):
+        raise ValueError('list must be a Google Tasks list id')
+    if show not in ('anyone', 'hidden') and not (is_id(show) and find_person(state, show)):
+        raise ValueError('show must be "anyone", "hidden" or a person id')
+    settings_of(state).setdefault('googleTaskLists', {})[list_id] = show
+
+
+def google_id(body, name):
+    value = body.get(name)
+    if not isinstance(value, str) or not GOOGLE_ID_RE.match(value):
+        raise ValueError(f'{name} must be a Google Tasks id')
+    return value
+
+
+def sent_to_google(action, body):
+    """Checks a change to a Google Tasks to-do, makes it, and returns the fresh read that comes back."""
+    connection = google_connection()
+    if not connection:
+        raise ValueError('Google Tasks is not connected')
+    if not isinstance(body, dict):
+        raise ValueError('expected an object')
+    params = {'list': google_id(body, 'list')}
+    if action != 'add':
+        params['id'] = google_id(body, 'id')
+    if action in ('add', 'edit'):
+        title, notes = body.get('title'), body.get('notes') or ''
+        if not isinstance(title, str) or not title.strip() or len(title) > 200:
+            raise ValueError('to-do title must be 1-200 characters')
+        if not isinstance(notes, str) or len(notes) > 2000:
+            raise ValueError('notes must be at most 2000 characters')
+        params.update(title=title.strip(), notes=notes.strip(), due=clean_date(body.get('due'), 'due'))
+    if action == 'edit' and body.get('toList'):
+        params['toList'] = google_id(body, 'toList')
+    try:
+        return google_tasks.call(*connection, action, **params)
+    except google_tasks.GoogleTasksError as e:
+        raise ValueError(f'Google Tasks: {e}.')
+
+
+def snooze_google_task(state, body):
+    """Google Tasks has no snooze, so the dashboard keeps its own: {to-do id: hidden until}."""
+    task_id, until = google_id(body or {}, 'id'), clean_date((body or {}).get('until'), 'until')
+    snoozed = state.setdefault('googleSnoozed', {})
+    if until:
+        snoozed[task_id] = until
+    else:
+        snoozed.pop(task_id, None)
+
+
+def watch_google_tasks():
+    """Reads Google Tasks every few minutes, so to-dos added or checked off in the Google Tasks app
+    reach the wall. A failed read keeps the last to-dos on screen, with a note."""
+    global state_version
+    while True:
+        connection = google_connection()
+        if connection:
+            data = error = None
+            try:
+                data = google_tasks.call(*connection, 'read')
+            except google_tasks.GoogleTasksError as e:
+                error = str(e)
+            except Exception as e:  # keep polling whatever happens
+                error = f'could not be read ({type(e).__name__})'
+            with state_changed:
+                if google_connected_to(connection[0]):  # not disconnected or changed meanwhile
+                    before = json.dumps([google_cache['lists'], google_cache['tasks'], google_cache['error']])
+                    if data:
+                        remember_google(data)
+                    else:
+                        google_cache['error'] = error
+                    if json.dumps([google_cache['lists'], google_cache['tasks'], google_cache['error']]) != before:
+                        state_version += 1
+                        state_changed.notify_all()
+        time.sleep(GOOGLE_POLL_SECONDS)
+
+
+def google_connected_to(url):
+    """Whether the saved Google Tasks link is still this one. Call with state_lock held."""
+    google = settings_of(load_state()).get('googleTasks')
+    return bool(google) and google['url'] == url
+
+
+def public_state(state):
+    """What pages get: the saved state without the Google Tasks link and key, plus Google's to-dos."""
+    settings = dict(settings_of(state))
+    settings.pop('googleTasksKey', None)
+    connected = bool(settings.pop('googleTasks', None))
+    settings['googleTasks'] = {'connected': True} if connected else None
+    return {**state, 'settings': settings, 'google': dict(google_cache) if connected else None,
+            'version': state_version}
 
 
 # --- Household settings: where the weather is for, and which calendars to show ---
@@ -387,7 +551,7 @@ def lan_addresses():
 class DashboardRequestHandler(http.server.SimpleHTTPRequestHandler):
     # Python 3.11 (the Pi's) doesn't map these on its own
     extensions_map = {**http.server.SimpleHTTPRequestHandler.extensions_map,
-                      '.woff2': 'font/woff2', '.svg': 'image/svg+xml'}
+                      '.woff2': 'font/woff2', '.svg': 'image/svg+xml', '.gs': 'text/plain; charset=utf-8'}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=ROOT, **kwargs)
@@ -435,7 +599,7 @@ class DashboardRequestHandler(http.server.SimpleHTTPRequestHandler):
         with state_changed:
             if since is not None and since.lstrip('-').isdigit():
                 state_changed.wait_for(lambda: state_version != int(since), timeout=LONG_POLL_SECONDS)
-            state = {**load_state(), 'version': state_version}
+            state = public_state(load_state())
         self.send_json(200, state)
 
     def send_head(self):
@@ -458,8 +622,12 @@ class DashboardRequestHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_POST(self):
         done = TASK_DONE_PATH_RE.match(self.path)
+        google = GOOGLE_ACTION_RE.match(self.path)
         if done:
             self.change_state(lambda state, body: complete_task(state, int(done[1])))
+        elif google:
+            self.change_state(lambda state, data: remember_google(data),
+                              prepare=lambda body: sent_to_google(google[1], body))
         elif self.path == '/update':
             self.update()
         elif self.path == '/kiosk/exit':
@@ -491,6 +659,12 @@ class DashboardRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.change_state(lambda state, body: edit_person(state, body, int(person[1])))
         elif self.path == '/api/settings/todos':
             self.change_state(set_show_todos)
+        elif self.path == '/api/settings/google-tasks':
+            self.change_state(set_google_tasks, prepare=checked_google_tasks)
+        elif self.path == '/api/settings/google-tasks/lists':
+            self.change_state(set_google_list)
+        elif self.path == '/api/google-tasks/snooze':
+            self.change_state(snooze_google_task)
         elif self.path == '/api/background':
             self.change_state(set_background)
         elif self.path == '/api/settings/location':
@@ -537,7 +711,7 @@ class DashboardRequestHandler(http.server.SimpleHTTPRequestHandler):
                 save_state(state)
                 state_version += 1
                 state_changed.notify_all()
-                state = {**state, 'version': state_version}
+                state = public_state(state)
         except LookupError as e:
             return self.send_json(404, {'error': str(e.args[0])})
         except ValueError as e:  # includes invalid JSON
@@ -545,8 +719,7 @@ class DashboardRequestHandler(http.server.SimpleHTTPRequestHandler):
         self.send_json(200, state)
 
     def update(self):
-        server_file = os.path.abspath(__file__)
-        before = file_hash(server_file)
+        before = code_hash()
         env = dict(os.environ, GIT_TERMINAL_PROMPT='0', GIT_SSH_COMMAND='ssh -o BatchMode=yes')
         try:
             result = subprocess.run(['git', 'pull', '--ff-only'], cwd=ROOT, env=env,
@@ -556,8 +729,8 @@ class DashboardRequestHandler(http.server.SimpleHTTPRequestHandler):
         except Exception as e:
             return self.send_json(500, {'success': False, 'error': str(e)})
 
-        # If server.py itself changed, exit after replying; systemd restarts us on the new code.
-        restart = result.returncode == 0 and file_hash(server_file) != before
+        # If the server's code changed, exit after replying; systemd restarts us on the new code.
+        restart = result.returncode == 0 and code_hash() != before
         self.send_json(200, {
             'success': result.returncode == 0,
             'output': result.stdout,
@@ -609,6 +782,7 @@ class DualStackServer(http.server.ThreadingHTTPServer):
 
 if __name__ == '__main__':
     threading.Thread(target=remove_finished, daemon=True).start()
+    threading.Thread(target=watch_google_tasks, daemon=True).start()
     with DualStackServer(('::', PORT), DashboardRequestHandler) as httpd:
         print(f'Serving dashboard at http://localhost:{PORT}')
         httpd.serve_forever()
