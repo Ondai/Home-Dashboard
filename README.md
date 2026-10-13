@@ -120,6 +120,9 @@ or delete it. **Show all** adds what's coming later, what's snoozed and what was
 checked-off to-dos are removed a month later. Everything works from the phone, so the wall doesn't
 need a touchscreen.
 
+With to-dos on, the wall shows the four soonest countdowns, with arrows beside them for the rest,
+so the to-dos below stay in view.
+
 #### Google Tasks
 
 The dashboard can also show the task lists of a Google account, so to-dos can be added from
@@ -127,8 +130,9 @@ anywhere with the Google Tasks app. Google Tasks can't share a list between acco
 family account works well: make a list for each person, plus one for the household, and add that
 account to the Google Tasks app on each phone.
 
-To connect it, open Settings → To-dos → Google Tasks → **Instructions** on a computer. It takes a few
-minutes in Google Apps Script with `google_tasks_data.gs`; then paste its link into Settings.
+To connect it, open Settings on your phone and follow the steps under To-dos → Google Tasks. It takes
+about five minutes: copy the dashboard's script (`google_tasks_data.gs`) into Google Apps Script,
+publish it, and paste its link back into Settings.
 
 - Lists named after a person show as theirs; choose for each list in Settings whose it is (or hide it).
 - To-dos added on the dashboard go into Google Tasks: onto the list of the one person they're for,

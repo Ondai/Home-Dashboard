@@ -1,10 +1,10 @@
 // Optional: puts the Google Tasks lists of one Google account (a shared family account works well)
 // on the dashboard's to-do list, and lets the dashboard check them off, add, edit and delete them.
 //
-// Setup (Settings > To-dos > Google Tasks > Instructions walks through it): signed in to that account,
-// make a new project at script.google.com and paste this in. Under Services, add the Google Tasks
-// API. Then Deploy > New deployment > Web app, with Execute as: Me and Who has access: Anyone, and
-// paste the web app link into Settings. After changing this code, redeploy (Deploy > Manage
+// Setup (the steps under Settings > To-dos > Google Tasks, on a phone, walk through it): signed in to
+// that account, make a new project at script.new and paste this in. Under Services, add the Google
+// Tasks API. Then Deploy > New deployment > Web app, with Execute as: Me and Who has access: Anyone,
+// and paste the web app link into Settings. After changing this code, redeploy (Deploy > Manage
 // deployments > edit > Version: New version) so the link stays the same.
 //
 // The first dashboard to connect is remembered, and from then on the link only works for it. To

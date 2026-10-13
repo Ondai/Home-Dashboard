@@ -1175,6 +1175,71 @@
             margin: 0 auto 25px auto;
         }
 
+        /* With to-dos on, the wall shows a few countdowns at a time (the soonest first), so the to-dos
+           below stay in view; the arrows beside them page through the rest */
+        .countdown-window.paged {
+            display: flex;
+            gap: 12px;
+        }
+
+        .countdown-window.paged #countdownGrid {
+            flex: 1;
+            min-width: 0;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            scroll-snap-type: y mandatory;
+            scrollbar-width: none;
+        }
+
+        .countdown-window.paged .countdown-container {
+            flex-shrink: 0;
+            scroll-snap-align: start;
+        }
+
+        .countdown-arrows {
+            flex-shrink: 0;
+            width: var(--heading-icon-size);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* Same as the add button above them */
+        .page-btn {
+            width: var(--heading-icon-size);
+            height: var(--heading-icon-size);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 50%;
+            background-color: rgba(44, 44, 46, 0.8);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            color: var(--text-color);
+            cursor: pointer;
+        }
+
+        .page-btn svg {
+            width: 50%;
+            height: 50%;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.3;
+            cursor: default;
+        }
+
+        .countdown-range {
+            text-align: center;
+            font-size: 1.05em;
+            font-weight: 600;
+            line-height: 1.3;
+            white-space: pre-line;
+            text-shadow: var(--heading-shadow);
+        }
+
         /* To-dos, under Coming Up: what's due this week, then what can be done anytime */
         .todo-section {
             display: flex;
@@ -1576,8 +1641,31 @@
             font-size: 0.95em;
         }
 
-        .cal-help a {
-            color: var(--primary-color);
+        /* Google Tasks setup: numbered steps, some with their own button */
+        .setup-steps {
+            margin: 10px 0 8px;
+            padding-left: 22px;
+            font-size: 0.9em;
+            line-height: 1.45;
+        }
+
+        .setup-steps li {
+            margin-bottom: 14px;
+        }
+
+        .setup-steps li > span {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .setup-steps .btn-secondary,
+        .setup-steps .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            min-height: 44px;
+            box-sizing: border-box;
+            font-family: inherit;
+            text-decoration: none;
         }
 
         /* The wall: a bigger modal and date picker, in proportion to the full-width keyboard */
@@ -1893,25 +1981,42 @@
                                     stroke-width="2.6" stroke-linecap="round" /></svg>
                         </button>
                     </div>
-                    <div class="grid-container" id="countdownGrid" style="gap: 12px;">
-                        <template x-for="event in events.filter(e => !e.isOver)" :key="event.id">
-                            <div class="countdown-container event-card" @click="openEditModal(event)">
-                                <span class="event-title" x-text="event.title"></span>
-                                <div class="event-time">
-                                    <span x-show="event.isToday" class="today-badge">TODAY !</span>
-                                    <span x-show="event.isTomorrow" class="time-value"
-                                        style="font-size: 1.2em; font-weight: 700;">Tomorrow</span>
-                                    <span x-show="event.isYesterday" class="time-value past-event"
-                                        style="font-size: 1.2em; font-weight: 700;">Yesterday</span>
-                                    <span x-show="!event.isToday && !event.isTomorrow && !event.isYesterday"
-                                        x-text="event.days" class="time-value"
-                                        :class="{ 'past-event': event.isPast }">0</span>
-                                    <span x-show="!event.isToday && !event.isTomorrow && !event.isYesterday"
-                                        class="time-label" :class="{ 'past-event': event.isPast }"
-                                        x-text="event.isPast ? ' Days Ago' : ' Days'"></span>
+                    <!-- With to-dos on, the wall shows a few countdowns at a time, with arrows beside them -->
+                    <div class="countdown-window" :class="{ paged: countdownsPaged() }">
+                        <div class="grid-container" id="countdownGrid" x-ref="countdownGrid" style="gap: 12px;"
+                            :style="countdownWindowStyle()" @scroll.passive="countdownScrolled()">
+                            <template x-for="event in events.filter(e => !e.isOver)" :key="event.id">
+                                <div class="countdown-container event-card" @click="openEditModal(event)">
+                                    <span class="event-title" x-text="event.title"></span>
+                                    <div class="event-time">
+                                        <span x-show="event.isToday" class="today-badge">TODAY !</span>
+                                        <span x-show="event.isTomorrow" class="time-value"
+                                            style="font-size: 1.2em; font-weight: 700;">Tomorrow</span>
+                                        <span x-show="event.isYesterday" class="time-value past-event"
+                                            style="font-size: 1.2em; font-weight: 700;">Yesterday</span>
+                                        <span x-show="!event.isToday && !event.isTomorrow && !event.isYesterday"
+                                            x-text="event.days" class="time-value"
+                                            :class="{ 'past-event': event.isPast }">0</span>
+                                        <span x-show="!event.isToday && !event.isTomorrow && !event.isYesterday"
+                                            class="time-label" :class="{ 'past-event': event.isPast }"
+                                            x-text="event.isPast ? ' Days Ago' : ' Days'"></span>
+                                    </div>
                                 </div>
-                            </div>
-                        </template>
+                            </template>
+                        </div>
+                        <div class="countdown-arrows" x-show="countdownsPaged()" x-cloak>
+                            <button class="page-btn" @click="pageCountdowns(-1)" :disabled="countdownTop <= 1"
+                                aria-label="Sooner countdowns">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6" fill="none"
+                                        stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                            </button>
+                            <span class="countdown-range" x-text="countdownRange()"></span>
+                            <button class="page-btn" @click="pageCountdowns(1)" :disabled="countdownsAtEnd()"
+                                aria-label="Later countdowns">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none"
+                                        stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                            </button>
+                        </div>
                     </div>
                     <!-- To-dos (turned on in Settings): late, due this week, then anytime. Show all adds what's
                          coming later, snoozed and done lately. Tap the circle to check one off, the rest to edit it -->
@@ -2310,49 +2415,44 @@
                         its color.</p>
 
                     <h4 class="settings-label">Google Tasks</h4>
-                    <div x-show="!settings.googleTasks">
-                        <p class="settings-current">Not connected. Connect a Google account's task lists to see and
-                            check them off here, and add to-dos from anywhere with the Google Tasks app.</p>
-                        <div class="settings-row">
-                            <input type="text" x-model="googleTasksInput" placeholder="Google Tasks script link"
-                                autocomplete="off" data-kb-plain :inputmode="isKiosk ? 'none' : 'url'"
-                                @focus="isKiosk && kbOpen($event.target)" @blur="kbClose()" @keydown.enter="connectGoogleTasks()">
-                            <button class="btn-secondary" @click="connectGoogleTasks()" :disabled="settingsBusy === 'google'"
-                                x-text="settingsBusy === 'google' ? 'Checking…' : 'Connect'"></button>
-                        </div>
-                        <button class="btn-secondary settings-button" @click="showGoogleTasksHelp = !showGoogleTasksHelp"
-                            :aria-expanded="showGoogleTasksHelp"
-                            x-text="showGoogleTasksHelp ? 'Hide Instructions' : 'Instructions'"></button>
-                        <div class="cal-help" x-show="showGoogleTasksHelp" x-cloak>
-                            <ol>
-                                <li>On a computer, open this dashboard's Settings (on home Wi-Fi) so you can copy and paste
-                                    between the two.</li>
-                                <li>In another tab, go to <strong>script.google.com</strong>, signed in to the Google account
-                                    whose task lists you want (a shared family account works well). Click <strong>New
-                                    project</strong>.</li>
-                                <li>Click <strong>Untitled project</strong> at the top and name it
-                                    <strong>Home Dashboard Tasks</strong>.</li>
-                                <li>Open <a x-show="!isKiosk" href="google_tasks_data.gs" target="_blank">the dashboard's
-                                    Google Tasks script</a><strong x-show="isKiosk"
-                                    x-text="(setupUrls[0] || '') + '/google_tasks_data.gs'"></strong>, copy all of it,
-                                    and paste it over everything in the editor. Click the save icon.</li>
-                                <li>In the left sidebar, click <strong>+</strong> next to <strong>Services</strong>, choose
-                                    <strong>Google Tasks API</strong>, and click <strong>Add</strong>.</li>
-                                <li>Click <strong>Deploy</strong> at the top right, then <strong>New deployment</strong>.
-                                    Click the gear next to "Select type" and choose <strong>Web app</strong>.</li>
-                                <li>Set <strong>Execute as</strong> to <strong>Me</strong> and <strong>Who has
-                                    access</strong> to <strong>Anyone</strong>, then click <strong>Deploy</strong>.</li>
-                                <li>Click <strong>Authorize access</strong> and pick the same account. Google warns that it
-                                    hasn't verified the app (it's your own script): click <strong>Advanced</strong>, then
-                                    <strong>Go to Home Dashboard Tasks (unsafe)</strong>. If permissions have checkboxes,
-                                    tick them all, then click <strong>Allow</strong>.</li>
-                                <li>Copy the <strong>Web app URL</strong>, paste it into the box above, and click
-                                    <strong>Connect</strong>.</li>
-                            </ol>
-                            <p class="settings-note">Once connected, the link only works for this dashboard. Set repeating
-                                to-dos up here rather than in the Google Tasks app: Google doesn't let other apps see
-                                its repeats. Sub-tasks aren't shown.</p>
-                        </div>
+                    <!-- Set up from a phone: the wall just points there -->
+                    <p class="settings-current" x-show="!settings.googleTasks && isKiosk">Not connected. To show your
+                        Google Tasks lists here, open Settings on your phone.</p>
+                    <div x-show="!settings.googleTasks && !isKiosk" x-init="isKiosk || loadGoogleScript()">
+                        <p class="settings-current">Show a Google account's task lists here, so you can add to-dos from
+                            anywhere with the Google Tasks app. About five minutes on your phone:</p>
+                        <ol class="setup-steps">
+                            <li>
+                                <span>Copy the dashboard's Google Tasks script.</span>
+                                <button class="btn-secondary" @click="copyGoogleScript()"
+                                    x-text="scriptCopied ? 'Copied ✓' : 'Copy Script'"></button>
+                            </li>
+                            <li>
+                                <span>Open Apps Script, signed in to the Google account with your task lists. Select all
+                                    the code there, paste over it, and tap the save icon.</span>
+                                <a class="btn-secondary" href="https://script.new" target="_blank" rel="noopener">Open Apps
+                                    Script</a>
+                            </li>
+                            <li>Tap <strong>+</strong> next to <strong>Services</strong>, choose <strong>Google Tasks
+                                API</strong>, and tap <strong>Add</strong>.</li>
+                            <li>Tap <strong>Deploy</strong>, <strong>New deployment</strong>, and choose
+                                <strong>Web app</strong> as the type. Set <strong>Who has access</strong> to
+                                <strong>Anyone</strong> and tap <strong>Deploy</strong>. When Google says the app isn't
+                                verified (it's your own), tap <strong>Advanced</strong>, <strong>Go to Untitled project
+                                (unsafe)</strong>, then <strong>Allow</strong>.</li>
+                            <li>
+                                <span>Copy the <strong>Web app URL</strong> and paste it here.</span>
+                                <div class="settings-row">
+                                    <input type="text" x-model="googleTasksInput" placeholder="https://script.google.com/…"
+                                        autocomplete="off" inputmode="url" @keydown.enter="connectGoogleTasks()">
+                                    <button class="btn-primary" @click="connectGoogleTasks()" :disabled="settingsBusy === 'google'"
+                                        x-text="settingsBusy === 'google' ? 'Checking…' : 'Connect'"></button>
+                                </div>
+                            </li>
+                        </ol>
+                        <p class="settings-note">If Apps Script is hard to use on your phone, tap <strong>aA</strong> in
+                            Safari's address bar and choose <strong>Request Desktop Website</strong>. Repeating to-dos
+                            belong on the dashboard: Google doesn't let other apps see the repeats set in its app.</p>
                     </div>
                     <div x-show="settings.googleTasks">
                         <p class="settings-current" x-text="google && google.error
@@ -2435,6 +2535,7 @@
             let kbRepeat = null;
             let returnToTopTimer = null;
             let toastTimer = null;
+            let googleScript = ''; // google_tasks_data.gs, fetched ahead for Copy Script
 
             const pad = n => String(n).padStart(2, '0');
             const isoDate = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -2456,6 +2557,8 @@
 
             // To-dos with a due date join the list this many days ahead
             const SOON_DAYS = 6;
+            // With to-dos on, the wall shows this many countdowns at a time
+            const COUNTDOWNS_AT_ONCE = 4;
             // The to-do list's groups, in order. Only the first two show until "Show all"
             const TASK_GROUPS = [
                 { key: 'now', name: '', always: true }, // late, today and the next six days
@@ -2545,6 +2648,8 @@
                 moreBelowText: '',
                 returnToTopAfterMs: 60 * 1000,
                 events: [],
+                countdownStep: 0,         // a countdown card and the gap below it, measured
+                countdownTop: 0,          // how far the countdowns are scrolled, when they show a few at a time
                 tasks: [],
                 showTaskModal: false,
                 showTaskIdeas: false,
@@ -2559,7 +2664,7 @@
                 google: null,             // Google Tasks' lists and to-dos as the server last read them
                 googleSnoozed: {},        // Google Tasks to-do id: snoozed until
                 googleTasksInput: '',
-                showGoogleTasksHelp: false,
+                scriptCopied: false,      // the Google Tasks setup's Copy Script just worked
                 showModal: false,
                 editingEvent: null,
                 modalTitle: '',
@@ -2626,6 +2731,7 @@
                         document.documentElement.classList.add('remote');
                         return;
                     }
+                    addEventListener('resize', () => this.fitCountdowns());
 
                     if (this.isKiosk) {
                         document.documentElement.classList.add('kiosk');
@@ -2709,6 +2815,7 @@
                     this.tasks = state.tasks || [];
                     this.google = state.google || null;
                     this.googleSnoozed = state.googleSnoozed || {};
+                    this.$nextTick(() => this.fitCountdowns());
                     this.updateTimers();
 
                     const bg = state.background;
@@ -3013,7 +3120,7 @@
                         const r = el.getBoundingClientRect();
                         return r.height > 0 && r.bottom > innerHeight + 1;
                     }).length;
-                    const countdowns = hidden('#countdownGrid .countdown-container');
+                    const countdowns = this.countdownsPaged() ? 0 : hidden('#countdownGrid .countdown-container');
                     const calendar = hidden('.event-list-container .event-card:not(:has(.no-events))');
                     const todos = hidden('#todoList .task-card');
                     const parts = [];
@@ -3027,12 +3134,53 @@
                     scrollBy({ top: innerHeight * 0.6, behavior: 'smooth' });
                 },
 
+                // --- Countdowns a few at a time (the wall, with to-dos on) ---
+
+                countdownsPaged() {
+                    return this.settings.showTodos && !this.isRemote &&
+                        this.events.filter(e => !e.isOver).length > COUNTDOWNS_AT_ONCE;
+                },
+
+                // Measures a card, which sets the window's height and how far the arrows move it
+                fitCountdowns() {
+                    const card = this.$refs.countdownGrid.querySelector('.countdown-container');
+                    this.countdownStep = card ? card.offsetHeight + 12 : 0;
+                    this.countdownScrolled();
+                },
+
+                countdownWindowStyle() {
+                    if (!this.countdownsPaged() || !this.countdownStep) return {};
+                    return { maxHeight: COUNTDOWNS_AT_ONCE * this.countdownStep - 12 + 'px' };
+                },
+
+                countdownScrolled() {
+                    this.countdownTop = this.$refs.countdownGrid.scrollTop;
+                },
+
+                // Whether the last countdowns are showing
+                countdownsAtEnd() {
+                    const hidden = this.events.filter(e => !e.isOver).length - COUNTDOWNS_AT_ONCE;
+                    return this.countdownTop >= hidden * this.countdownStep - 1;
+                },
+
+                pageCountdowns(direction) {
+                    this.$refs.countdownGrid.scrollBy({ top: direction * COUNTDOWNS_AT_ONCE * this.countdownStep, behavior: 'smooth' });
+                },
+
+                // "5–8" over "of 13"
+                countdownRange() {
+                    const total = this.events.filter(e => !e.isOver).length;
+                    const first = Math.round(this.countdownTop / (this.countdownStep || 1)) + 1;
+                    return `${first}–${Math.min(first + COUNTDOWNS_AT_ONCE - 1, total)}\nof ${total}`;
+                },
+
                 // After a minute untouched, scroll back to the top so the wall doesn't sit halfway down
                 noteActivity() {
                     clearTimeout(returnToTopTimer);
                     returnToTopTimer = setTimeout(() => {
                         if (this.showModal || this.showSettingsModal || this.showTaskModal) return this.noteActivity();
                         this.showAllTasks = false;
+                        this.$refs.countdownGrid.scrollTop = 0;
                         scrollTo({ top: 0, behavior: 'smooth' });
                         // Smooth scrolling can stall when the window isn't being painted; make sure we get there
                         setTimeout(() => { if (scrollY > 0) scrollTo(0, 0); }, 2000);
@@ -3584,10 +3732,39 @@
                 },
 
                 connectGoogleTasks() {
-                    this.saveTodoSetting('google', 'PUT', '/api/settings/google-tasks', { url: this.googleTasksInput }, () => {
-                        this.googleTasksInput = '';
-                        this.showGoogleTasksHelp = false;
-                    });
+                    this.saveTodoSetting('google', 'PUT', '/api/settings/google-tasks', { url: this.googleTasksInput },
+                        () => { this.googleTasksInput = ''; });
+                },
+
+                // Fetched ahead: a phone only lets a page copy during the tap itself, not after a download
+                async loadGoogleScript() {
+                    try {
+                        googleScript = await (await fetch('google_tasks_data.gs')).text();
+                    } catch (e) {
+                        console.error('Could not load the Google Tasks script:', e);
+                    }
+                },
+
+                // The clipboard API needs https, which the dashboard doesn't have, so this copies the
+                // older way: from selected text
+                copyGoogleScript() {
+                    const box = document.createElement('textarea');
+                    box.value = googleScript;
+                    box.readOnly = true; // no keyboard popping up on a phone
+                    // Off screen but where the page is (so nothing scrolls), at a size iPhones don't zoom in on
+                    box.style.cssText = `position: absolute; left: -9999px; top: ${scrollY}px; font-size: 12pt;`;
+                    document.body.appendChild(box);
+                    box.select();
+                    box.setSelectionRange(0, googleScript.length); // iPhones need this as well as select()
+                    const copied = googleScript && document.execCommand('copy');
+                    box.remove();
+                    if (!copied) {
+                        this.todoError = "Couldn't copy the script. Open google_tasks_data.gs from the dashboard's address and copy it from there.";
+                        return;
+                    }
+                    this.todoError = '';
+                    this.scriptCopied = true;
+                    setTimeout(() => { this.scriptCopied = false; }, 3000);
                 },
 
                 disconnectGoogleTasks() {
